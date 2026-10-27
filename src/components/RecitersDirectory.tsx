@@ -138,22 +138,22 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
       </div>
 
       {/* Search and Filters Toolbar */}
-      <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <div className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         
         {/* Search input */}
         <div className="relative">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Sheikh by name (e.g. Al-Husary, Alafasy, Minshawi), country, or Riwayah..."
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white dark:focus:bg-slate-800 transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 px-1.5 py-0.5"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5 py-0.5"
             >
               Clear
             </button>
@@ -161,17 +161,17 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         </div>
 
         {/* Interactive Segmented Filters (Functional Buttons) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
           
           {/* Riwayah filter */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-xs font-semibold text-slate-500 shrink-0 mr-1">Riwayah:</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Riwayah:</span>
             <button
               onClick={() => setSelectedRiwayah('all')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRiwayah === 'all'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               All Riwayahs
@@ -181,7 +181,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRiwayah === 'hafs'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Hafs 'an 'Asim
@@ -191,7 +191,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRiwayah === 'warsh'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Warsh 'an Nafi'
@@ -201,7 +201,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRiwayah === 'duri'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Al-Duri
@@ -210,13 +210,13 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
 
           {/* Style filter */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-xs font-semibold text-slate-500 shrink-0 mr-1">Style:</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Style:</span>
             <button
               onClick={() => setSelectedStyle('all')}
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedStyle === 'all'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               All Styles
@@ -226,7 +226,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedStyle === 'murattal'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Murattal
@@ -236,7 +236,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedStyle === 'mujawwad'
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Mujawwad
@@ -246,7 +246,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedStyle.includes("mu'allim") || selectedStyle.includes("study")
                   ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Mu'allim (Tajweed)
@@ -267,10 +267,10 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
           return (
             <div
               key={reciter.id}
-              className={`bg-white rounded-xl border p-5 transition-all flex flex-col justify-between ${
+              className={`bg-white dark:bg-slate-900 rounded-xl border p-5 transition-all flex flex-col justify-between ${
                 isSelected 
-                  ? 'border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/20' 
-                  : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  ? 'border-emerald-600 dark:border-emerald-500 ring-2 ring-emerald-600/20 bg-emerald-50/20 dark:bg-emerald-950/20' 
+                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
               }`}
             >
               <div>
@@ -278,10 +278,10 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                 {/* Header row with Arabic calligraphy name & favorite */}
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex-1 min-w-0">
-                    <div className="font-arabic text-xl font-bold text-slate-900 truncate" dir="rtl">
+                    <div className="font-arabic text-xl font-bold text-slate-900 dark:text-white truncate" dir="rtl">
                       {reciter.arabicName}
                     </div>
-                    <h3 className="text-base font-semibold text-slate-900 truncate">
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
                       {reciter.name}
                     </h3>
                   </div>
@@ -291,8 +291,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                     aria-label={isFav ? 'Remove favorite' : 'Add favorite'}
                     className={`p-1.5 rounded-lg transition-colors ${
                       isFav 
-                        ? 'text-amber-500 hover:text-amber-600 bg-amber-50' 
-                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                        ? 'text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40' 
+                        : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <Star className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
@@ -300,23 +300,23 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                 </div>
 
                 {/* Clean unboxed metadata with subtle typographic separators */}
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 mb-3">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-3">
                   <span>{reciter.country}</span>
                   <span aria-hidden="true">·</span>
                   <span>{reciter.riwayah}</span>
                   <span aria-hidden="true">·</span>
-                  <span className="font-medium text-emerald-800">{reciter.style}</span>
+                  <span className="font-medium text-emerald-800 dark:text-emerald-400">{reciter.style}</span>
                 </div>
 
                 {/* Scholarly biography */}
-                <p className="text-xs text-slate-600 leading-relaxed mb-4 line-clamp-3">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4 line-clamp-3">
                   {reciter.bio}
                 </p>
 
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
                   
                   {/* Select & Play button */}
@@ -326,8 +326,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                       isSelected && isPlaying
                         ? 'bg-amber-600 hover:bg-amber-700 text-white'
                         : isSelected
-                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                        : 'bg-slate-900 hover:bg-slate-800 text-white'
+                        ? 'bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white'
+                        : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white'
                     }`}
                   >
                     {isSelected && isPlaying ? (
@@ -349,8 +349,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                     title="Sample Al-Fatiha voice preview"
                     className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
                       isPreviewing 
-                        ? 'bg-emerald-100 border-emerald-300 text-emerald-800' 
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300' 
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     {isPreviewing ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
@@ -360,7 +360,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                 {/* Tajweed practice button */}
                 <button
                   onClick={() => onOpenTajweedWithReciter(reciter)}
-                  className="w-full py-1.5 px-3 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-1.5 px-3 text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Mic className="w-3.5 h-3.5" />
                   <span>Practice Tajweed with {reciter.name.split(' ')[0]}</span>

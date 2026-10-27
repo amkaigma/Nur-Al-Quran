@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { RecitersDirectory } from './components/RecitersDirectory';
 import { QuranReader } from './components/QuranReader';
@@ -20,6 +20,35 @@ export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
   const [activeTab, setActiveTab] = useState<'reciters' | 'reader' | 'tajweed' | 'progress'>('reciters');
   
+  // Dark mode theme preference persistence
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('nur_quran_theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('nur_quran_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('nur_quran_theme', 'light');
+      }
+    } catch (err) {
+      console.warn('Failed to update theme classes:', err);
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode(prev => !prev);
+  }, []);
+
   const [currentReciter, setCurrentReciter] = useState<Reciter>(() => {
     return getReciterById(progress.lastReciterId) || RECITERS[0];
   });
@@ -96,7 +125,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans pb-28">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans pb-28 transition-colors duration-200">
       
       {/* 3-Zone Navigation Header */}
       <Navbar
@@ -104,6 +133,8 @@ export default function App() {
         setActiveTab={setActiveTab}
         lastStoppedSurah={lastStoppedSurah}
         onResume={handleResumeLastStopped}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleDarkMode}
       />
 
       {/* Main View Area */}
@@ -156,15 +187,17 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 mt-12 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-arabic font-bold text-emerald-800 text-sm">نور القرآن</span>
+            <span className="font-arabic font-bold text-emerald-800 dark:text-emerald-400 text-sm">نور القرآن</span>
             <span>·</span>
-            <span>Nur Al-Quran — Reciters Worldwide & Tajweed Alignment</span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">Nur Al-Quran</span>
+            <span>—</span>
+            <span>Reciters Worldwide & Tajweed Alignment</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-600">
+          <div className="flex items-center gap-4 text-slate-600 dark:text-slate-400">
             <span>114 Surahs Synchronized</span>
             <span>·</span>
             <span>Hafs, Warsh, Al-Duri</span>
