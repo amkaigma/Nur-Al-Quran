@@ -1,0 +1,6 @@
+{
+  "name": "Nur Al-Quran - Global Reciters & Tajweed Studio",
+  "description": "Synchronized global Quran reciters catalog with 114 Surahs audio streams, reading & listening progress tracking, and interactive Tajweed alignment studio.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
