@@ -22,9 +22,11 @@ export interface Reciter {
   arabicName: string;
   country: string;
   countryCode: string;
+  city?: string;
   riwayah: Riwayah;
   style: RecitationStyle;
   serverUrl: string; // Base URL where {001..114}.mp3 is served
+  backupServerUrl?: string; // High-availability fallback mirror
   availableSurahs: number[]; // e.g. 1 to 114
   photoUrl?: string;
   bio: string;

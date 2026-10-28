@@ -79,6 +79,7 @@ export default function App() {
     isMuted,
     loopMode,
     isLoading,
+    hasError,
     togglePlay,
     seek,
     changePlaybackRate,
@@ -219,6 +220,7 @@ export default function App() {
         isMuted={isMuted}
         loopMode={loopMode}
         isLoading={isLoading}
+        hasError={hasError}
         onTogglePlay={togglePlay}
         onSeek={seek}
         onChangeRate={changePlaybackRate}

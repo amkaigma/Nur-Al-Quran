@@ -24,6 +24,7 @@ interface AudioPlayerBarProps {
   isMuted: boolean;
   loopMode: 'off' | 'surah' | 'all';
   isLoading: boolean;
+  hasError?: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onChangeRate: (rate: number) => void;
@@ -54,6 +55,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   isMuted,
   loopMode,
   isLoading,
+  hasError,
   onTogglePlay,
   onSeek,
   onChangeRate,
@@ -110,7 +112,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               </span>
             </div>
             <div className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
-              <span>{currentReciter.name}</span>
+              <span>{currentReciter.countryCode === 'NG' ? `🇳🇬 ${currentReciter.name}` : currentReciter.name}</span>
               <span aria-hidden="true">·</span>
               <span className="text-emerald-400">{currentReciter.style}</span>
             </div>
@@ -156,12 +158,18 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
           </div>
 
-          {/* Time scrubber text */}
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400 tabular-nums">
-            <span>{formatTime(currentTime)}</span>
-            <span>/</span>
-            <span>{formatTime(duration)}</span>
-          </div>
+          {/* Time scrubber text or Error indicator */}
+          {hasError ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-medium bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/80 animate-pulse">
+              <span>Stream interrupted. Tap play to retry mirror</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400 tabular-nums">
+              <span>{formatTime(currentTime)}</span>
+              <span>/</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          )}
         </div>
 
         {/* Right: Quick actions & volume */}

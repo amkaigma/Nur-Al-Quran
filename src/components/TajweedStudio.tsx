@@ -97,11 +97,21 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
 
     const audio = sheikhAudioRef.current;
     const handleEnded = () => setIsSheikhPlaying(false);
+    const handleError = () => {
+      console.warn('Tajweed benchmark audio failed, switching to backup mirror');
+      if (benchmarkReciter.backupServerUrl && audio) {
+        const padded = target.surahId.toString().padStart(3, '0');
+        const backupBase = benchmarkReciter.backupServerUrl.endsWith('/') ? benchmarkReciter.backupServerUrl : benchmarkReciter.backupServerUrl + '/';
+        audio.src = `${backupBase}${padded}.mp3`;
+      }
+    };
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.pause();
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
     };
   }, [benchmarkReciter, target.surahId]);
 

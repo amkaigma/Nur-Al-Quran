@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Reciter } from '../types/quran';
-import { getSurahAudioUrl } from '../data/reciters';
+import { getSurahAudioUrl, getSurahAudioFallbacks } from '../data/reciters';
 import { updateLastStopped } from '../services/storage';
 
 export interface UseQuranAudioProps {
@@ -20,6 +20,16 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
   const [loopMode, setLoopMode] = useState<'off' | 'surah' | 'all'>('surah');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
+
+  // Fallback mirrors tracking
+  const fallbacksRef = useRef<string[]>([]);
+  const fallbackIndexRef = useRef<number>(0);
+  const isPlayingRef = useRef<boolean>(false);
+
+  // Keep isPlayingRef in sync
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   // Initialize audio element
   useEffect(() => {
@@ -53,9 +63,21 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     };
 
     const handleError = () => {
-      setIsLoading(false);
-      setIsPlaying(false);
-      setHasError(true);
+      // Automatic fallback failover
+      if (fallbackIndexRef.current < fallbacksRef.current.length - 1) {
+        fallbackIndexRef.current += 1;
+        const nextMirror = fallbacksRef.current[fallbackIndexRef.current];
+        console.warn(`Audio stream failed on mirror. Switching to fallback mirror ${fallbackIndexRef.current}:`, nextMirror);
+        audio.src = nextMirror;
+        audio.load();
+        if (isPlayingRef.current) {
+          audio.play().catch(err => console.warn('Fallback play interrupted:', err));
+        }
+      } else {
+        setIsLoading(false);
+        setIsPlaying(false);
+        setHasError(true);
+      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -82,7 +104,11 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     const audio = audioRef.current;
     if (!audio) return;
 
-    const audioUrl = getSurahAudioUrl(currentReciter, currentSurahId);
+    const fallbacks = getSurahAudioFallbacks(currentReciter, currentSurahId);
+    fallbacksRef.current = fallbacks;
+    fallbackIndexRef.current = 0;
+
+    const audioUrl = fallbacks[0] || getSurahAudioUrl(currentReciter, currentSurahId);
     const wasPlaying = isPlaying;
 
     setIsLoading(true);
@@ -97,7 +123,14 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     if (wasPlaying) {
       audio.play().then(() => setIsPlaying(true)).catch((err) => {
         console.warn('Playback interrupted:', err);
-        setIsPlaying(false);
+        // Attempt immediate failover if initial source fails
+        if (fallbackIndexRef.current < fallbacksRef.current.length - 1) {
+          fallbackIndexRef.current += 1;
+          audio.src = fallbacksRef.current[fallbackIndexRef.current];
+          audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        } else {
+          setIsPlaying(false);
+        }
       });
     } else {
       setIsPlaying(false);
@@ -113,6 +146,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
       setIsPlaying(false);
     } else {
       setIsLoading(true);
+      setHasError(false);
       audio.play()
         .then(() => {
           setIsPlaying(true);
@@ -120,10 +154,27 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
           updateLastStopped(currentSurahId, 1, currentReciter.id);
         })
         .catch(err => {
-          console.error('Audio play failed:', err);
-          setIsPlaying(false);
-          setIsLoading(false);
-          setHasError(true);
+          console.warn('Audio primary play failed, attempting fallback mirror:', err);
+          if (fallbackIndexRef.current < fallbacksRef.current.length - 1) {
+            fallbackIndexRef.current += 1;
+            audio.src = fallbacksRef.current[fallbackIndexRef.current];
+            audio.play()
+              .then(() => {
+                setIsPlaying(true);
+                setIsLoading(false);
+                updateLastStopped(currentSurahId, 1, currentReciter.id);
+              })
+              .catch(err2 => {
+                console.error('All mirrors failed:', err2);
+                setIsPlaying(false);
+                setIsLoading(false);
+                setHasError(true);
+              });
+          } else {
+            setIsPlaying(false);
+            setIsLoading(false);
+            setHasError(true);
+          }
         });
     }
   }, [isPlaying, currentSurahId, currentReciter]);

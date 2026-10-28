@@ -403,10 +403,15 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
 
           {/* Reciter Context Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-xs text-slate-600 dark:text-slate-400">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Volume2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <span>Current Reciter:</span>
               <strong className="text-slate-900 dark:text-white">{currentReciter.name}</strong>
+              {currentReciter.countryCode === 'NG' && (
+                <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold border border-emerald-300 dark:border-emerald-800">
+                  🇳🇬 Nigeria {currentReciter.city ? `(${currentReciter.city})` : ''}
+                </span>
+              )}
               <span className="text-slate-400 dark:text-slate-500 font-arabic">({currentReciter.arabicName})</span>
             </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Play, Pause, Mic, Star, Globe, Sparkles, Volume2 } from 'lucide-react';
 import { Reciter, Riwayah, RecitationStyle } from '../types/quran';
-import { RECITERS } from '../data/reciters';
+import { RECITERS, getSurahAudioUrl } from '../data/reciters';
 import { toggleFavoriteReciter, getFavoriteReciters } from '../services/storage';
 
 interface RecitersDirectoryProps {
@@ -22,6 +22,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRiwayah, setSelectedRiwayah] = useState<string>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [favorites, setFavorites] = useState<string[]>(() => getFavoriteReciters());
   const [previewReciterId, setPreviewReciterId] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -45,15 +46,27 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
       previewAudio.pause();
     }
 
-    // Play Al-Fatiha (001.mp3) snippet for quick vocal sample
-    const sampleUrl = `${reciter.serverUrl.endsWith('/') ? reciter.serverUrl : reciter.serverUrl + '/'}001.mp3`;
+    // Play Al-Fatiha (001.mp3) snippet using verified audio URL helper
+    const sampleUrl = getSurahAudioUrl(reciter, 1);
     const audio = new Audio(sampleUrl);
     audio.play().then(() => {
       setPreviewReciterId(reciter.id);
       setPreviewAudio(audio);
     }).catch(err => {
-      console.warn('Preview failed:', err);
-      setPreviewReciterId(null);
+      console.warn('Preview failed, attempting backup:', err);
+      if (reciter.backupServerUrl) {
+        const backupUrl = `${reciter.backupServerUrl.endsWith('/') ? reciter.backupServerUrl : reciter.backupServerUrl + '/'}001.mp3`;
+        const backupAudio = new Audio(backupUrl);
+        backupAudio.play().then(() => {
+          setPreviewReciterId(reciter.id);
+          setPreviewAudio(backupAudio);
+        }).catch(err2 => {
+          console.warn('Backup preview failed:', err2);
+          setPreviewReciterId(null);
+        });
+      } else {
+        setPreviewReciterId(null);
+      }
     });
 
     audio.onended = () => {
@@ -70,6 +83,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         reciter.name.toLowerCase().includes(q) ||
         reciter.arabicName.includes(q) ||
         reciter.country.toLowerCase().includes(q) ||
+        (reciter.city && reciter.city.toLowerCase().includes(q)) ||
         reciter.riwayah.toLowerCase().includes(q);
 
       const matchesRiwayah = 
@@ -80,9 +94,16 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         selectedStyle === 'all' || 
         reciter.style.toLowerCase().includes(selectedStyle.toLowerCase());
 
-      return matchesSearch && matchesRiwayah && matchesStyle;
+      const matchesRegion = 
+        selectedRegion === 'all' ||
+        (selectedRegion === 'nigeria' && (reciter.countryCode === 'NG' || reciter.country.toLowerCase().includes('nigeria'))) ||
+        (selectedRegion === 'egypt' && reciter.countryCode === 'EG') ||
+        (selectedRegion === 'saudi' && reciter.countryCode === 'SA') ||
+        (selectedRegion === 'sudan' && reciter.countryCode === 'SD');
+
+      return matchesSearch && matchesRiwayah && matchesStyle && matchesRegion;
     });
-  }, [searchQuery, selectedRiwayah, selectedStyle]);
+  }, [searchQuery, selectedRiwayah, selectedStyle, selectedRegion]);
 
   return (
     <div className="space-y-8">
@@ -161,96 +182,160 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         </div>
 
         {/* Interactive Segmented Filters (Functional Buttons) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
           
-          {/* Riwayah filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Riwayah:</span>
+          {/* Row 1: Region / Country filter */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1 flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Region:</span>
+            </span>
             <button
-              onClick={() => setSelectedRiwayah('all')}
+              onClick={() => setSelectedRegion('all')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedRiwayah === 'all'
+                selectedRegion === 'all'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              All Riwayahs
+              All Regions
             </button>
             <button
-              onClick={() => setSelectedRiwayah('hafs')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedRiwayah === 'hafs'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              onClick={() => setSelectedRegion('nigeria')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                selectedRegion === 'nigeria'
+                  ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/40'
+                  : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
               }`}
             >
-              Hafs 'an 'Asim
+              <span>🇳🇬</span>
+              <span>Nigeria & West Africa</span>
             </button>
             <button
-              onClick={() => setSelectedRiwayah('warsh')}
+              onClick={() => setSelectedRegion('egypt')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedRiwayah === 'warsh'
+                selectedRegion === 'egypt'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Warsh 'an Nafi'
+              Egypt (Golden Age)
             </button>
             <button
-              onClick={() => setSelectedRiwayah('duri')}
+              onClick={() => setSelectedRegion('saudi')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedRiwayah === 'duri'
+                selectedRegion === 'saudi'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Al-Duri
+              Haramain & Gulf
+            </button>
+            <button
+              onClick={() => setSelectedRegion('sudan')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                selectedRegion === 'sudan'
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Sudan & Maghreb
             </button>
           </div>
 
-          {/* Style filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Style:</span>
-            <button
-              onClick={() => setSelectedStyle('all')}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedStyle === 'all'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              All Styles
-            </button>
-            <button
-              onClick={() => setSelectedStyle('murattal')}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedStyle === 'murattal'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Murattal
-            </button>
-            <button
-              onClick={() => setSelectedStyle('mujawwad')}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedStyle === 'mujawwad'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Mujawwad
-            </button>
-            <button
-              onClick={() => setSelectedStyle("mu'allim")}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                selectedStyle.includes("mu'allim") || selectedStyle.includes("study")
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Mu'allim (Tajweed)
-            </button>
+          {/* Row 2: Riwayah & Style filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+            
+            {/* Riwayah filter */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Riwayah:</span>
+              <button
+                onClick={() => setSelectedRiwayah('all')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedRiwayah === 'all'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setSelectedRiwayah('hafs')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedRiwayah === 'hafs'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Hafs 'an 'Asim
+              </button>
+              <button
+                onClick={() => setSelectedRiwayah('warsh')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedRiwayah === 'warsh'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Warsh 'an Nafi'
+              </button>
+              <button
+                onClick={() => setSelectedRiwayah('duri')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedRiwayah === 'duri'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Al-Duri
+              </button>
+            </div>
+
+            {/* Style filter */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 mr-1">Style:</span>
+              <button
+                onClick={() => setSelectedStyle('all')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedStyle === 'all'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setSelectedStyle('murattal')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedStyle === 'murattal'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Murattal
+              </button>
+              <button
+                onClick={() => setSelectedStyle('mujawwad')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedStyle === 'mujawwad'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Mujawwad
+              </button>
+              <button
+                onClick={() => setSelectedStyle("mu'allim")}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  selectedStyle.includes("mu'allim") || selectedStyle.includes("study")
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Mu'allim
+              </button>
+            </div>
+
           </div>
 
         </div>
@@ -263,6 +348,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
           const isSelected = currentReciter.id === reciter.id;
           const isFav = favorites.includes(reciter.id);
           const isPreviewing = previewReciterId === reciter.id;
+          const isNigerian = reciter.countryCode === 'NG' || reciter.country.toLowerCase().includes('nigeria');
 
           return (
             <div
@@ -270,6 +356,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               className={`bg-white dark:bg-slate-900 rounded-xl border p-5 transition-all flex flex-col justify-between ${
                 isSelected 
                   ? 'border-emerald-600 dark:border-emerald-500 ring-2 ring-emerald-600/20 bg-emerald-50/20 dark:bg-emerald-950/20' 
+                  : isNigerian
+                  ? 'border-emerald-200 dark:border-emerald-900/60 hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-sm'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
               }`}
             >
@@ -281,9 +369,11 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                     <div className="font-arabic text-xl font-bold text-slate-900 dark:text-white truncate" dir="rtl">
                       {reciter.arabicName}
                     </div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
-                      {reciter.name}
-                    </h3>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        {reciter.name}
+                      </h3>
+                    </div>
                   </div>
 
                   <button
@@ -299,9 +389,16 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                   </button>
                 </div>
 
-                {/* Clean unboxed metadata with subtle typographic separators */}
+                {/* Badges row with country & riwayah */}
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-3">
-                  <span>{reciter.country}</span>
+                  {isNigerian ? (
+                    <span className="inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                      <span>🇳🇬</span>
+                      <span>Nigeria {reciter.city ? `(${reciter.city})` : ''}</span>
+                    </span>
+                  ) : (
+                    <span>{reciter.country}</span>
+                  )}
                   <span aria-hidden="true">·</span>
                   <span>{reciter.riwayah}</span>
                   <span aria-hidden="true">·</span>
@@ -373,11 +470,11 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
       </div>
 
       {filteredReciters.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-          <p className="text-sm text-slate-600">No reciter matching your search criteria.</p>
+        <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <p className="text-sm text-slate-600 dark:text-slate-400">No reciter matching your search criteria.</p>
           <button
-            onClick={() => { setSearchQuery(''); setSelectedRiwayah('all'); setSelectedStyle('all'); }}
-            className="mt-3 px-4 py-2 text-xs font-medium text-emerald-700 hover:underline"
+            onClick={() => { setSearchQuery(''); setSelectedRiwayah('all'); setSelectedStyle('all'); setSelectedRegion('all'); }}
+            className="mt-3 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
           >
             Reset Filters
           </button>
