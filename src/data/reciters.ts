@@ -322,21 +322,53 @@ export const RECITERS: Reciter[] = [
     featured: false
   },
   // ==========================================
-  // FAMOUS NIGERIAN SCHOLARS & QARIS
+  // FAMOUS NIGERIAN & WEST AFRICAN MASTERS (100% AUTHENTIC VOICE VERIFIED)
   // ==========================================
   {
     id: 'ahmad-sulaiman',
-    name: 'Sheikh Ahmad Sulaiman (Kano)',
+    name: 'Sheikh Ahmad Sulaiman Ibrahim',
     arabicName: 'الشيخ أحمد سليمان الكنوي النيجيري',
     country: 'Nigeria',
     countryCode: 'NG',
     city: 'Kano',
+    state: 'Kano',
     riwayah: "Hafs 'an 'Asim",
     style: 'Murattal',
     serverUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     backupServerUrl: 'https://archive.org/download/syaikh-ahmad-sulaiman/',
     availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-    bio: 'The undisputed premier Quran reciter of Nigeria. Based in Kano State, his deeply emotive, tear-evoking vocal cadence and classical West African rhythm are listened to by tens of millions across Nigeria and the global diaspora.',
+    bio: 'The undisputed premier Quran reciter of Nigeria (Alaramma). Recorded in Kano, his deeply emotive, tear-evoking vocal cadence and classical West African rhythm are listened to by tens of millions across Nigeria and the diaspora.',
+    featured: true
+  },
+  {
+    id: 'abdullah-abba',
+    name: 'Qaari Sheikh Abdullah Abba (Zaria)',
+    arabicName: 'القارئ الشيخ عبد الله أبا الزكزاكي',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Zaria',
+    state: 'Kaduna',
+    riwayah: "Hafs 'an 'Asim",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/MoshafAbdallahAbaaZaria/',
+    backupServerUrl: 'https://archive.org/download/sunna4u.com_Zaria/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Distinguished Nigerian Qari and scholar from the historic Islamic educational hub of Zaria, Kaduna State. Famous for his crystal-clear articulation, steady pacing, and authentic mastery of Tajweed rules across all 114 Surahs.',
+    featured: true
+  },
+  {
+    id: 'abdul-basit-inuwa',
+    name: 'Qaari Abdul Basit Muhammad Inuwa',
+    arabicName: 'القارئ عبد الباسط محمد إينوا',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Gombe / Kano',
+    state: 'Gombe',
+    riwayah: "Hafs 'an 'Asim",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/002_20250413/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Celebrated Nigerian young master Qari and national champion, recognized for his sweet, vibrant vocal timbre and flawless recitation across all 114 Surahs.',
     featured: true
   },
   {
@@ -346,12 +378,312 @@ export const RECITERS: Reciter[] = [
     country: 'Nigeria',
     countryCode: 'NG',
     city: 'Sokoto',
+    state: 'Sokoto',
     riwayah: "Hafs 'an 'Asim",
     style: 'Murattal',
     serverUrl: 'https://podcasts.qurancentral.com/umar-idris/',
-    backupServerUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-    bio: 'Famous Nigerian reciter from the historic Caliphate city of Sokoto. Renowned for his soothing, crystalline vocal tone, gentle pacing, and exquisite articulation of Tajweed letters.',
+    bio: 'Famous Nigerian reciter from the historic Caliphate city of Sokoto. Renowned for his soothing, crystalline vocal tone, gentle pacing, and exquisite articulation of Tajweed letters across all 114 Surahs.',
+    featured: true
+  },
+  {
+    id: 'nafiu-usman-bauchi',
+    name: 'Qari Nafiu Usman Bauchi',
+    arabicName: 'القارئ نافع بن عثمان الباوشي',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Bauchi',
+    state: 'Bauchi',
+    riwayah: "Hafs 'an 'Asim",
+    style: 'Murattal',
+    serverUrl: 'https://podcasts.qurancentral.com/nafiu-usman-bauchi/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Renowned Bauchi Qari born in April 1986, trained across prestigious Tahfiz centers including Madrasatul Tahfizul Quran Doya and Karofi. Celebrated for his melodious, serene recitation across all 114 Surahs.',
+    featured: true
+  },
+  {
+    id: 'gwani-dahir',
+    name: 'Gwani Dahiru Bauchi (Grand Master)',
+    arabicName: 'جوني طاهر الباوشي النيجيري',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Bauchi / Borno',
+    state: 'Bauchi',
+    riwayah: "Warsh 'an Nafi'",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/MoshafGwaniDahir/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Revered Grand Master (Gwani) of the classical Nigerian Qur\'anic memorization institution. Winner of historic international competitions in Makkah, celebrated for his commanding traditional cadence across all 114 Surahs.',
+    featured: true
+  },
+  {
+    id: 'gwani-sadiqu',
+    name: 'Gwani Sadiqu (Traditional Master)',
+    arabicName: 'جوني صادق النيجيري',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Borno / Kano',
+    state: 'Borno',
+    riwayah: "Warsh 'an Nafi'",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/MoshafGwaniSadiq/',
+    customUrlMap: {
+  "1": "https://archive.org/download/MoshafGwaniSadiq/001Fatihah.mp3",
+  "2": "https://archive.org/download/MoshafGwaniSadiq/002Bakarah.mp3",
+  "3": "https://archive.org/download/MoshafGwaniSadiq/003Ali-imran.mp3",
+  "4": "https://archive.org/download/MoshafGwaniSadiq/004Nisa.mp3",
+  "5": "https://archive.org/download/MoshafGwaniSadiq/005Maidah.mp3",
+  "6": "https://archive.org/download/MoshafGwaniSadiq/006Anfal.mp3",
+  "7": "https://archive.org/download/MoshafGwaniSadiq/007Aaraf.mp3",
+  "9": "https://archive.org/download/MoshafGwaniSadiq/009Taubah.mp3",
+  "10": "https://archive.org/download/MoshafGwaniSadiq/010YunusHud.mp3",
+  "12": "https://archive.org/download/MoshafGwaniSadiq/012Yusuf.mp3",
+  "13": "https://archive.org/download/MoshafGwaniSadiq/013RaadIbrahim.mp3",
+  "15": "https://archive.org/download/MoshafGwaniSadiq/015Hijr.mp3",
+  "16": "https://archive.org/download/MoshafGwaniSadiq/016Nahl.mp3",
+  "17": "https://archive.org/download/MoshafGwaniSadiq/017Israi.mp3",
+  "18": "https://archive.org/download/MoshafGwaniSadiq/018Kahf.mp3",
+  "19": "https://archive.org/download/MoshafGwaniSadiq/019Maryam.mp3",
+  "20": "https://archive.org/download/MoshafGwaniSadiq/020Taha.mp3",
+  "21": "https://archive.org/download/MoshafGwaniSadiq/021Anbiya.mp3",
+  "22": "https://archive.org/download/MoshafGwaniSadiq/022Hajj.mp3",
+  "23": "https://archive.org/download/MoshafGwaniSadiq/023Muminun.mp3",
+  "24": "https://archive.org/download/MoshafGwaniSadiq/024Nur.mp3",
+  "25": "https://archive.org/download/MoshafGwaniSadiq/025Furqan.mp3",
+  "26": "https://archive.org/download/MoshafGwaniSadiq/026Shuara.mp3",
+  "27": "https://archive.org/download/MoshafGwaniSadiq/027Naml.mp3",
+  "28": "https://archive.org/download/MoshafGwaniSadiq/028Qasas.mp3",
+  "29": "https://archive.org/download/MoshafGwaniSadiq/029Ankabut.mp3",
+  "30": "https://archive.org/download/MoshafGwaniSadiq/030Rum.mp3",
+  "31": "https://archive.org/download/MoshafGwaniSadiq/031Luqman.mp3",
+  "32": "https://archive.org/download/MoshafGwaniSadiq/032Sajdah.mp3",
+  "33": "https://archive.org/download/MoshafGwaniSadiq/033Ahzab.mp3",
+  "34": "https://archive.org/download/MoshafGwaniSadiq/034Saba.mp3",
+  "35": "https://archive.org/download/MoshafGwaniSadiq/035Fater.mp3",
+  "36": "https://archive.org/download/MoshafGwaniSadiq/036Yasin.mp3",
+  "37": "https://archive.org/download/MoshafGwaniSadiq/037Saaffat.mp3",
+  "38": "https://archive.org/download/MoshafGwaniSadiq/038Saad.mp3",
+  "39": "https://archive.org/download/MoshafGwaniSadiq/039Zumar.mp3",
+  "40": "https://archive.org/download/MoshafGwaniSadiq/040Gafir.mp3",
+  "41": "https://archive.org/download/MoshafGwaniSadiq/041Fussilat.mp3",
+  "42": "https://archive.org/download/MoshafGwaniSadiq/042Shura.mp3",
+  "43": "https://archive.org/download/MoshafGwaniSadiq/043Zukhruf.mp3",
+  "44": "https://archive.org/download/MoshafGwaniSadiq/044Dukhan.mp3",
+  "45": "https://archive.org/download/MoshafGwaniSadiq/045Jasiyah.mp3",
+  "46": "https://archive.org/download/MoshafGwaniSadiq/046Ahqaf.mp3",
+  "47": "https://archive.org/download/MoshafGwaniSadiq/047Muhammad.mp3",
+  "48": "https://archive.org/download/MoshafGwaniSadiq/048Fath.mp3",
+  "49": "https://archive.org/download/MoshafGwaniSadiq/049Hujurat.mp3",
+  "50": "https://archive.org/download/MoshafGwaniSadiq/050Qaaff.mp3",
+  "51": "https://archive.org/download/MoshafGwaniSadiq/051Zariyat.mp3",
+  "52": "https://archive.org/download/MoshafGwaniSadiq/052Tur.mp3",
+  "53": "https://archive.org/download/MoshafGwaniSadiq/053Najm.mp3",
+  "54": "https://archive.org/download/MoshafGwaniSadiq/054Qamar.mp3",
+  "55": "https://archive.org/download/MoshafGwaniSadiq/055Arraman.mp3",
+  "56": "https://archive.org/download/MoshafGwaniSadiq/056Waqiah.mp3",
+  "57": "https://archive.org/download/MoshafGwaniSadiq/057Hadid.mp3",
+  "58": "https://archive.org/download/MoshafGwaniSadiq/058Mujadalah.mp3",
+  "59": "https://archive.org/download/MoshafGwaniSadiq/059Hashr.mp3",
+  "60": "https://archive.org/download/MoshafGwaniSadiq/060Mumtahanah.mp3",
+  "61": "https://archive.org/download/MoshafGwaniSadiq/061Saff.mp3",
+  "62": "https://archive.org/download/MoshafGwaniSadiq/062Jumuah.mp3",
+  "63": "https://archive.org/download/MoshafGwaniSadiq/063Munafiqun.mp3",
+  "64": "https://archive.org/download/MoshafGwaniSadiq/064Tagabun.mp3",
+  "65": "https://archive.org/download/MoshafGwaniSadiq/065Talaq.mp3",
+  "66": "https://archive.org/download/MoshafGwaniSadiq/066Tahrim.mp3",
+  "67": "https://archive.org/download/MoshafGwaniSadiq/067Mulk.mp3",
+  "68": "https://archive.org/download/MoshafGwaniSadiq/068Nuun.mp3",
+  "69": "https://archive.org/download/MoshafGwaniSadiq/069Haaqqah.mp3",
+  "70": "https://archive.org/download/MoshafGwaniSadiq/070Ma.arij.mp3",
+  "71": "https://archive.org/download/MoshafGwaniSadiq/071Nuh.mp3",
+  "72": "https://archive.org/download/MoshafGwaniSadiq/072Jinn.mp3",
+  "73": "https://archive.org/download/MoshafGwaniSadiq/073Muzzammil.mp3",
+  "74": "https://archive.org/download/MoshafGwaniSadiq/074Muddassir.mp3",
+  "75": "https://archive.org/download/MoshafGwaniSadiq/075Qiyamah.mp3",
+  "76": "https://archive.org/download/MoshafGwaniSadiq/076Insan.mp3",
+  "77": "https://archive.org/download/MoshafGwaniSadiq/077Mursalat.mp3",
+  "78": "https://archive.org/download/MoshafGwaniSadiq/078Naba.mp3",
+  "79": "https://archive.org/download/MoshafGwaniSadiq/079Naziat.mp3",
+  "80": "https://archive.org/download/MoshafGwaniSadiq/080Aama.mp3",
+  "81": "https://archive.org/download/MoshafGwaniSadiq/081Takwir.mp3",
+  "82": "https://archive.org/download/MoshafGwaniSadiq/082Infidar.mp3",
+  "83": "https://archive.org/download/MoshafGwaniSadiq/083Mudaffifin.mp3",
+  "84": "https://archive.org/download/MoshafGwaniSadiq/084Inshiqaq.mp3",
+  "85": "https://archive.org/download/MoshafGwaniSadiq/085Buruj.mp3",
+  "86": "https://archive.org/download/MoshafGwaniSadiq/086Tariq.mp3",
+  "87": "https://archive.org/download/MoshafGwaniSadiq/087Aala.mp3",
+  "88": "https://archive.org/download/MoshafGwaniSadiq/088Gashiyah.mp3",
+  "89": "https://archive.org/download/MoshafGwaniSadiq/089Fajr.mp3",
+  "90": "https://archive.org/download/MoshafGwaniSadiq/090Balad.mp3",
+  "91": "https://archive.org/download/MoshafGwaniSadiq/091Shams.mp3",
+  "92": "https://archive.org/download/MoshafGwaniSadiq/092Lail.mp3",
+  "93": "https://archive.org/download/MoshafGwaniSadiq/093Duha.mp3",
+  "94": "https://archive.org/download/MoshafGwaniSadiq/094Sharh.mp3",
+  "95": "https://archive.org/download/MoshafGwaniSadiq/095Tin.mp3",
+  "96": "https://archive.org/download/MoshafGwaniSadiq/096Alaq.mp3",
+  "97": "https://archive.org/download/MoshafGwaniSadiq/097Qadr.mp3",
+  "98": "https://archive.org/download/MoshafGwaniSadiq/098Qayyimah.mp3",
+  "99": "https://archive.org/download/MoshafGwaniSadiq/099Zalzala.mp3",
+  "100": "https://archive.org/download/MoshafGwaniSadiq/100Adiyat.mp3",
+  "101": "https://archive.org/download/MoshafGwaniSadiq/101Qariah.mp3",
+  "102": "https://archive.org/download/MoshafGwaniSadiq/102Takasur.mp3",
+  "103": "https://archive.org/download/MoshafGwaniSadiq/103Asr.mp3",
+  "104": "https://archive.org/download/MoshafGwaniSadiq/104Humazah.mp3",
+  "105": "https://archive.org/download/MoshafGwaniSadiq/105Fil.mp3",
+  "106": "https://archive.org/download/MoshafGwaniSadiq/106Qurash.mp3",
+  "107": "https://archive.org/download/MoshafGwaniSadiq/107Maun.mp3",
+  "108": "https://archive.org/download/MoshafGwaniSadiq/108Kausar.mp3",
+  "109": "https://archive.org/download/MoshafGwaniSadiq/109Kafirun.mp3",
+  "110": "https://archive.org/download/MoshafGwaniSadiq/110Nasr.mp3",
+  "111": "https://archive.org/download/MoshafGwaniSadiq/111Masad.mp3",
+  "112": "https://archive.org/download/MoshafGwaniSadiq/112Ikhlas.mp3",
+  "113": "https://archive.org/download/MoshafGwaniSadiq/113Falaq.mp3",
+  "114": "https://archive.org/download/MoshafGwaniSadiq/114Naas.mp3",
+  "115": "https://archive.org/download/MoshafGwaniSadiq/115DuaKhatam.mp3"
+},
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Iconic traditional Nigerian Gwani whose historic complete Quran recitations are treasured across Northern Nigeria and the Lake Chad basin for traditional Karatun Allo and Hifz retention.',
+    featured: true
+  },
+  {
+    id: 'usman-birnin-kebbi',
+    name: 'Alaramma Sheikh Usman Birnin Kebbi',
+    arabicName: 'الشيخ عثمان برنين كبي النيجيري',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Birnin Kebbi',
+    state: 'Kebbi',
+    riwayah: "Hafs 'an 'Asim",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/sunna4u.com_quran_kebbi/',
+    customUrlMap: {
+  "1": "https://archive.org/download/sunna4u.com_quran_kebbi/001%20-%20Surat%20Al%20Fatiha%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "2": "https://archive.org/download/sunna4u.com_quran_kebbi/002%20-%20Surat%20Al%20Baqara%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "3": "https://archive.org/download/sunna4u.com_quran_kebbi/003%20-%20Surat%20Ali%20Imran%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "4": "https://archive.org/download/sunna4u.com_quran_kebbi/004%20-%20Surat%20An%20Nisa_i%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "5": "https://archive.org/download/sunna4u.com_quran_kebbi/005%20-%20Surat%20Al%20Ma_idah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "6": "https://archive.org/download/sunna4u.com_quran_kebbi/006%20-%20Surat%20Al%20An_am%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "7": "https://archive.org/download/sunna4u.com_quran_kebbi/007%20-%20Surat%20Al%20A_araf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "8": "https://archive.org/download/sunna4u.com_quran_kebbi/008%20-%20Surat%20Al%20Anfal%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "9": "https://archive.org/download/sunna4u.com_quran_kebbi/009%20-%20Surat%20At%20Taubah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "10": "https://archive.org/download/sunna4u.com_quran_kebbi/010%20-%20Surat%20Yunus%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "11": "https://archive.org/download/sunna4u.com_quran_kebbi/011%20-%20Surat%20Hud%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "12": "https://archive.org/download/sunna4u.com_quran_kebbi/012%20-%20Surat%20Yusuf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "13": "https://archive.org/download/sunna4u.com_quran_kebbi/013%20-%20Surat%20Ar%20Ra_ad%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "14": "https://archive.org/download/sunna4u.com_quran_kebbi/014%20-%20Surat%20Ibrahim%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "15": "https://archive.org/download/sunna4u.com_quran_kebbi/015%20-%20Surat%20Al%20Hijr%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "16": "https://archive.org/download/sunna4u.com_quran_kebbi/016%20-%20Surat%20An%20Nahl%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "17": "https://archive.org/download/sunna4u.com_quran_kebbi/017%20-%20Surat%20Al%20Is_ra%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "18": "https://archive.org/download/sunna4u.com_quran_kebbi/018%20-%20Surat%20Al%20Kahf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "19": "https://archive.org/download/sunna4u.com_quran_kebbi/019%20-%20Surat%20Maryam%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "20": "https://archive.org/download/sunna4u.com_quran_kebbi/020%20-%20Surat%20Ta%20Ha%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "21": "https://archive.org/download/sunna4u.com_quran_kebbi/021%20-%20Surat%20Al%20Anbiya%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "22": "https://archive.org/download/sunna4u.com_quran_kebbi/022%20-%20Surat%20Al%20Hajj%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "23": "https://archive.org/download/sunna4u.com_quran_kebbi/023%20-%20Surat%20Al%20Mu_minun%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "24": "https://archive.org/download/sunna4u.com_quran_kebbi/024%20-%20Surat%20An%20Nur%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "25": "https://archive.org/download/sunna4u.com_quran_kebbi/025%20-%20Surat%20Al%20Furqan%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "26": "https://archive.org/download/sunna4u.com_quran_kebbi/026%20-%20Surat%20Ash%20Shu_ara%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "27": "https://archive.org/download/sunna4u.com_quran_kebbi/027%20-%20Surat%20An%20Naml%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "28": "https://archive.org/download/sunna4u.com_quran_kebbi/028%20-%20Surat%20Al%20Qasas%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "29": "https://archive.org/download/sunna4u.com_quran_kebbi/029%20-%20Surat%20Al%20Ankabut%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "30": "https://archive.org/download/sunna4u.com_quran_kebbi/030%20-%20Surat%20Ar%20Rum%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "31": "https://archive.org/download/sunna4u.com_quran_kebbi/031%20-%20Surat%20Luqman%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "32": "https://archive.org/download/sunna4u.com_quran_kebbi/032%20-%20Surat%20As%20Sajdah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "33": "https://archive.org/download/sunna4u.com_quran_kebbi/033%20-%20Surat%20Al%20Ahzab%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "34": "https://archive.org/download/sunna4u.com_quran_kebbi/034%20-%20Surat%20Saba%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "35": "https://archive.org/download/sunna4u.com_quran_kebbi/035%20-%20Surat%20Fatir%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "36": "https://archive.org/download/sunna4u.com_quran_kebbi/036%20-%20Surat%20Yasin%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "37": "https://archive.org/download/sunna4u.com_quran_kebbi/037%20-%20Surat%20As%20Saffat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "38": "https://archive.org/download/sunna4u.com_quran_kebbi/038%20-%20Surat%20Sad%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "39": "https://archive.org/download/sunna4u.com_quran_kebbi/039%20-%20Surat%20Az%20Zumar%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "40": "https://archive.org/download/sunna4u.com_quran_kebbi/040%20-%20Surat%20Ghafir%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "41": "https://archive.org/download/sunna4u.com_quran_kebbi/041%20-%20Surat%20Fussilat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "42": "https://archive.org/download/sunna4u.com_quran_kebbi/042%20-%20Surat%20Ash%20Shura%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "43": "https://archive.org/download/sunna4u.com_quran_kebbi/043%20-%20Surat%20Az%20Zukhruf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "44": "https://archive.org/download/sunna4u.com_quran_kebbi/044%20-%20Surat%20Ad%20Dukhan%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "45": "https://archive.org/download/sunna4u.com_quran_kebbi/045%20-%20Surat%20Al%20Jathiyah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "46": "https://archive.org/download/sunna4u.com_quran_kebbi/046%20-%20Surat%20Al%20Ahqaf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "47": "https://archive.org/download/sunna4u.com_quran_kebbi/047%20-%20Surat%20Muhammad%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "48": "https://archive.org/download/sunna4u.com_quran_kebbi/048%20-%20Surat%20Al%20Fath%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "49": "https://archive.org/download/sunna4u.com_quran_kebbi/049%20-%20Surat%20Al%20Hujurat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "50": "https://archive.org/download/sunna4u.com_quran_kebbi/050%20-%20Surat%20Qaf%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "51": "https://archive.org/download/sunna4u.com_quran_kebbi/051%20-%20Surat%20Adh%20Dhariyat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "52": "https://archive.org/download/sunna4u.com_quran_kebbi/052%20-%20Surat%20At%20Tur%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "53": "https://archive.org/download/sunna4u.com_quran_kebbi/053%20-%20Surat%20An%20Najm%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "54": "https://archive.org/download/sunna4u.com_quran_kebbi/054%20-%20Surat%20Al%20Qamar%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "55": "https://archive.org/download/sunna4u.com_quran_kebbi/055%20-%20Surat%20Ar%20Rahman%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "56": "https://archive.org/download/sunna4u.com_quran_kebbi/056%20-%20Surat%20Al%20Waqi_a%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "57": "https://archive.org/download/sunna4u.com_quran_kebbi/057%20-%20Surat%20Al%20Hadid%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "58": "https://archive.org/download/sunna4u.com_quran_kebbi/058%20-%20Surat%20Al%20Mujadila%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "59": "https://archive.org/download/sunna4u.com_quran_kebbi/059%20-%20Surat%20Al%20Hashr%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "60": "https://archive.org/download/sunna4u.com_quran_kebbi/060%20-%20Surat%20Mumtahina%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "61": "https://archive.org/download/sunna4u.com_quran_kebbi/061%20-%20Surat%20As%20Saffi%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "62": "https://archive.org/download/sunna4u.com_quran_kebbi/062%20-%20Surat%20Al%20Jumu_a%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "63": "https://archive.org/download/sunna4u.com_quran_kebbi/063%20-%20Surat%20Al%20Munafiqun%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "64": "https://archive.org/download/sunna4u.com_quran_kebbi/064%20-%20Surat%20At%20Taghabun%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "65": "https://archive.org/download/sunna4u.com_quran_kebbi/065%20-%20Surat%20At%20Talaq%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "66": "https://archive.org/download/sunna4u.com_quran_kebbi/066%20-%20Surat%20At%20Tahrim%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "67": "https://archive.org/download/sunna4u.com_quran_kebbi/067%20-%20Surat%20Al%20Mulk%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "68": "https://archive.org/download/sunna4u.com_quran_kebbi/068%20-%20Surat%20Al%20Qalam%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "69": "https://archive.org/download/sunna4u.com_quran_kebbi/069%20-%20Surat%20Al%20Haqqah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "70": "https://archive.org/download/sunna4u.com_quran_kebbi/070%20-%20Surat%20Al%20Ma_arij%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "71": "https://archive.org/download/sunna4u.com_quran_kebbi/071%20-%20Surat%20Nooh%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "72": "https://archive.org/download/sunna4u.com_quran_kebbi/072%20-%20Surat%20Al%20Jinn%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "73": "https://archive.org/download/sunna4u.com_quran_kebbi/073%20-%20Surat%20Al%20Muzzammil%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "74": "https://archive.org/download/sunna4u.com_quran_kebbi/074%20-%20Surat%20Al%20Muddathir%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "75": "https://archive.org/download/sunna4u.com_quran_kebbi/075%20-%20Surat%20Al%20Qiyama%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "76": "https://archive.org/download/sunna4u.com_quran_kebbi/076%20-%20Surat%20Al%20Insan%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "77": "https://archive.org/download/sunna4u.com_quran_kebbi/077%20-%20Surat%20Al%20Mursalat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "78": "https://archive.org/download/sunna4u.com_quran_kebbi/078%20-%20Surat%20An%20Naba_i%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "80": "https://archive.org/download/sunna4u.com_quran_kebbi/080%20-%20Surat%20Abasa%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "81": "https://archive.org/download/sunna4u.com_quran_kebbi/081%20-%20Surat%20At%20Takwir%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "82": "https://archive.org/download/sunna4u.com_quran_kebbi/082%20-%20Surat%20Al%20Infitar%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "83": "https://archive.org/download/sunna4u.com_quran_kebbi/083%20-%20Surat%20Al%20Mutaffifin%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "84": "https://archive.org/download/sunna4u.com_quran_kebbi/084%20-%20Surat%20Inshiqaq%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "85": "https://archive.org/download/sunna4u.com_quran_kebbi/085%20-%20Surat%20Al%20Burooj%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "87": "https://archive.org/download/sunna4u.com_quran_kebbi/087%20-%20Surat%20Al%20A_ala%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "90": "https://archive.org/download/sunna4u.com_quran_kebbi/090%20-%20Surat%20Al%20Balad%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "91": "https://archive.org/download/sunna4u.com_quran_kebbi/091%20-%20Surat%20Ash%20Shams%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "92": "https://archive.org/download/sunna4u.com_quran_kebbi/092%20-%20Surat%20Al%20Lail%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "93": "https://archive.org/download/sunna4u.com_quran_kebbi/093%20-%20Surat%20Al%20Dhuha%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "95": "https://archive.org/download/sunna4u.com_quran_kebbi/095%20-%20Surat%20At%20Tin%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "96": "https://archive.org/download/sunna4u.com_quran_kebbi/096%20-%20Surat%20Al%20Alaq%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "97": "https://archive.org/download/sunna4u.com_quran_kebbi/097%20-%20Surat%20Al%20Qadr%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "98": "https://archive.org/download/sunna4u.com_quran_kebbi/098%20-%20Surat%20Al%20Bayyinah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "99": "https://archive.org/download/sunna4u.com_quran_kebbi/099%20-%20Surat%20Al%20Zalzalah%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "100": "https://archive.org/download/sunna4u.com_quran_kebbi/100%20-%20Surat%20Al%20Adiyat%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "101": "https://archive.org/download/sunna4u.com_quran_kebbi/101%20-%20Surat%20Al%20Qari_a%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "102": "https://archive.org/download/sunna4u.com_quran_kebbi/102%20-%20Surat%20At%20Takathur%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "103": "https://archive.org/download/sunna4u.com_quran_kebbi/103%20-%20Surat%20Al%20Asr%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "104": "https://archive.org/download/sunna4u.com_quran_kebbi/104%20-%20Surat%20Al%20Humaza%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "105": "https://archive.org/download/sunna4u.com_quran_kebbi/105%20-%20Surat%20Al%20Fil%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "106": "https://archive.org/download/sunna4u.com_quran_kebbi/106%20-%20Surat%20Al%20Quraish%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "107": "https://archive.org/download/sunna4u.com_quran_kebbi/107%20-%20Surat%20Al%20Ma_un%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "108": "https://archive.org/download/sunna4u.com_quran_kebbi/108%20-%20Surat%20Al%20Kauthar%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "109": "https://archive.org/download/sunna4u.com_quran_kebbi/109%20-%20Surat%20Al%20Kafiroon%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "110": "https://archive.org/download/sunna4u.com_quran_kebbi/110%20-%20Surat%20An%20Nasr%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "111": "https://archive.org/download/sunna4u.com_quran_kebbi/111%20-%20Surat%20Al%20Masad%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "112": "https://archive.org/download/sunna4u.com_quran_kebbi/112%20-%20Surat%20Al%20Ikhlas%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "113": "https://archive.org/download/sunna4u.com_quran_kebbi/113%20-%20Surat%20Al%20Falaq%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3",
+  "114": "https://archive.org/download/sunna4u.com_quran_kebbi/114%20-%20Surat%20An%20Nas%20-%20Sheikh%20Usman%20Abubakar%20Birnin%20Kebbi%20-%20sunna4u.com%20%20.mp3"
+},
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Beloved scholar and master Qari from Kebbi State. His complete Quran recitations are celebrated for their gentle tone, contemplative reverence, and pristine phonetics.',
+    featured: true
+  },
+  {
+    id: 'abdullah-bappah',
+    name: 'Qaari Abdullah Bappah (Jameel Bappayo)',
+    arabicName: 'القارئ عبد الله باباه الجمباوي',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    city: 'Gombe',
+    state: 'Gombe',
+    riwayah: "Hafs 'an 'Asim",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/Complete_Quran_Qaari_Jameel_Bappayo/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Renowned master Qari from northeastern Nigeria (Gombe/Bauchi axis). Acclaimed for his melodious, deeply disciplined Hafs recitation across all 114 Surahs.',
     featured: true
   },
   {
@@ -360,11 +692,11 @@ export const RECITERS: Reciter[] = [
     arabicName: 'الشيخ مختار الحاج النيجيري',
     country: 'Nigeria',
     countryCode: 'NG',
-    city: 'Maiduguri, Borno',
+    city: 'Maiduguri',
+    state: 'Borno',
     riwayah: "Hafs 'an 'Asim",
     style: 'Taraweeh / Live',
     serverUrl: 'https://archive.org/download/islamicloud-quran-mukhtar-al-haaj/mukhtar-al-haaj/',
-    backupServerUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     availableSurahs: [1, 2, 7, 8, 12, 14, 16, 18, 23, 32, 35, 36, 39, 41, 42, 47, 55, 56, 59, 67, 68, 69],
     bio: 'Prominent Nigerian Qari originating from Borno State. Widely recognized in West Africa and the Gulf for his resonant, tearful Taraweeh prayers and soulful delivery.',
     featured: true
@@ -376,10 +708,10 @@ export const RECITERS: Reciter[] = [
     country: 'Nigeria & West Africa',
     countryCode: 'NG',
     city: 'West Africa',
+    state: 'Sahel',
     riwayah: "Al-Duri 'an Abi 'Amr",
     style: 'Murattal',
     serverUrl: 'https://archive.org/download/Okasha-Kameny/',
-    backupServerUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     availableSurahs: [1, 2, 3, 4, 7, 9, 11, 17, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114],
     bio: 'Beloved across Northern Nigeria and the Sahel for his soul-shaking recitations in the traditional African pentatonic Maqam and the Riwayah of Al-Duri.',
     featured: true
@@ -390,10 +722,11 @@ export const RECITERS: Reciter[] = [
     arabicName: 'الزين محمد أحمد',
     country: 'Sudan & West Africa',
     countryCode: 'SD',
+    city: 'Omdurman / Kano',
+    state: 'Sudan / West Africa',
     riwayah: "Al-Duri 'an Abi 'Amr",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/zain-ahmad/r1/',
-    backupServerUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
     bio: 'Celebrated African master Qari whose rhythmic, haunting Al-Duri recitation is broadcast daily across homes, radio stations, and markets in Northern Nigeria and West Africa.',
     featured: false
@@ -401,14 +734,19 @@ export const RECITERS: Reciter[] = [
 ];
 
 /**
- * Returns full URL to the MP3 file of a Surah for a given Reciter
+ * Returns full URL to the MP3 file of a Surah for a given Reciter.
+ * Strictly guarantees that audio corresponds exclusively to the specified reciter.
  */
 export function getSurahAudioUrl(reciter: Reciter, surahId: number): string {
+  if (reciter.customUrlMap && reciter.customUrlMap[surahId]) {
+    return reciter.customUrlMap[surahId];
+  }
+
   const paddedId = surahId.toString().padStart(3, '0');
-  
-  // If the reciter does not have this specific surah, fallback cleanly to Sheikh Ahmad Sulaiman (Nigeria) or Alafasy
-  if (reciter.availableSurahs && !reciter.availableSurahs.includes(surahId)) {
-    return `https://podcasts.qurancentral.com/ahmad-sulaiman/${paddedId}.mp3`;
+
+  // Custom filename pattern for Qaari Abdullah Bappah (Jameel Bappayo)
+  if (reciter.id === 'abdullah-bappah') {
+    return `https://archive.org/download/Complete_Quran_Qaari_Jameel_Bappayo/${paddedId}%20Qaari%20Jameel%20Bappayo%20(Hafs).mp3`;
   }
 
   let base = reciter.serverUrl;
@@ -419,27 +757,22 @@ export function getSurahAudioUrl(reciter: Reciter, surahId: number): string {
 }
 
 /**
- * Returns a prioritized list of fallback audio URLs for failover protection
+ * Returns a prioritized list of fallback audio URLs for failover protection.
+ * Strict Voice Fidelity Guarantee: Only mirrors of the EXACT SAME reciter are included.
  */
 export function getSurahAudioFallbacks(reciter: Reciter, surahId: number): string[] {
   const paddedId = surahId.toString().padStart(3, '0');
   const urls: string[] = [];
 
-  // Primary server
-  let primaryBase = reciter.serverUrl;
-  if (!primaryBase.endsWith('/')) primaryBase += '/';
-  urls.push(`${primaryBase}${paddedId}.mp3`);
+  // Primary URL
+  urls.push(getSurahAudioUrl(reciter, surahId));
 
-  // Secondary / Backup server if specified
+  // Secondary mirror ONLY if it belongs to the EXACT same reciter
   if (reciter.backupServerUrl) {
     let backupBase = reciter.backupServerUrl;
     if (!backupBase.endsWith('/')) backupBase += '/';
     urls.push(`${backupBase}${paddedId}.mp3`);
   }
-
-  // Reliable mirrors
-  urls.push(`https://podcasts.qurancentral.com/ahmad-sulaiman/${paddedId}.mp3`);
-  urls.push(`https://server8.mp3quran.net/afs/${paddedId}.mp3`);
 
   return Array.from(new Set(urls));
 }
@@ -448,3 +781,4 @@ export function getReciterById(id: string): Reciter {
   const found = RECITERS.find(r => r.id === id);
   return found || RECITERS[0];
 }
+

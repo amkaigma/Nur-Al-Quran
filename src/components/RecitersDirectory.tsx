@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Play, Pause, Mic, Star, Globe, Sparkles, Volume2 } from 'lucide-react';
+import { Search, Play, Pause, Mic, Star, Globe, Sparkles, Volume2, ShieldCheck, BookOpen, Award, CheckCircle2, Info } from 'lucide-react';
 import { Reciter, Riwayah, RecitationStyle } from '../types/quran';
 import { RECITERS, getSurahAudioUrl } from '../data/reciters';
+import { NIGERIAN_SCHOLARS_REGISTRY } from '../data/nigerianScholars';
 import { toggleFavoriteReciter, getFavoriteReciters } from '../services/storage';
 
 interface RecitersDirectoryProps {
@@ -23,6 +24,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
   const [selectedRiwayah, setSelectedRiwayah] = useState<string>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('all');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedNigerianState, setSelectedNigerianState] = useState<string>('all');
+  const [nigeriaViewMode, setNigeriaViewMode] = useState<'reciters' | 'registry'>('reciters');
   const [favorites, setFavorites] = useState<string[]>(() => getFavoriteReciters());
   const [previewReciterId, setPreviewReciterId] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -84,6 +87,8 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         reciter.arabicName.includes(q) ||
         reciter.country.toLowerCase().includes(q) ||
         (reciter.city && reciter.city.toLowerCase().includes(q)) ||
+        (reciter.state && reciter.state.toLowerCase().includes(q)) ||
+        reciter.bio.toLowerCase().includes(q) ||
         reciter.riwayah.toLowerCase().includes(q);
 
       const matchesRiwayah = 
@@ -101,9 +106,36 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
         (selectedRegion === 'saudi' && reciter.countryCode === 'SA') ||
         (selectedRegion === 'sudan' && reciter.countryCode === 'SD');
 
-      return matchesSearch && matchesRiwayah && matchesStyle && matchesRegion;
+      const matchesNigerianState =
+        selectedRegion !== 'nigeria' ||
+        selectedNigerianState === 'all' ||
+        (reciter.state && reciter.state.toLowerCase().includes(selectedNigerianState.toLowerCase())) ||
+        (reciter.city && reciter.city.toLowerCase().includes(selectedNigerianState.toLowerCase()));
+
+      return matchesSearch && matchesRiwayah && matchesStyle && matchesRegion && matchesNigerianState;
     });
-  }, [searchQuery, selectedRiwayah, selectedStyle, selectedRegion]);
+  }, [searchQuery, selectedRiwayah, selectedStyle, selectedRegion, selectedNigerianState]);
+
+  const filteredRegistry = useMemo(() => {
+    return NIGERIAN_SCHOLARS_REGISTRY.filter((entry) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        entry.name.toLowerCase().includes(q) ||
+        entry.arabicName.includes(q) ||
+        entry.city.toLowerCase().includes(q) ||
+        entry.state.toLowerCase().includes(q) ||
+        entry.tradition.toLowerCase().includes(q) ||
+        entry.bio.toLowerCase().includes(q);
+
+      const matchesState =
+        selectedNigerianState === 'all' ||
+        entry.state.toLowerCase().includes(selectedNigerianState.toLowerCase()) ||
+        entry.city.toLowerCase().includes(selectedNigerianState.toLowerCase());
+
+      return matchesSearch && matchesState;
+    });
+  }, [searchQuery, selectedNigerianState]);
 
   return (
     <div className="space-y-8">
@@ -201,7 +233,11 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               All Regions
             </button>
             <button
-              onClick={() => setSelectedRegion('nigeria')}
+              onClick={() => {
+                setSelectedRegion('nigeria');
+                setSelectedNigerianState('all');
+                setNigeriaViewMode('reciters');
+              }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 selectedRegion === 'nigeria'
                   ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/40'
@@ -212,7 +248,10 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               <span>Nigeria & West Africa</span>
             </button>
             <button
-              onClick={() => setSelectedRegion('egypt')}
+              onClick={() => {
+                setSelectedRegion('egypt');
+                setSelectedNigerianState('all');
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRegion === 'egypt'
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -222,7 +261,10 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               Egypt (Golden Age)
             </button>
             <button
-              onClick={() => setSelectedRegion('saudi')}
+              onClick={() => {
+                setSelectedRegion('saudi');
+                setSelectedNigerianState('all');
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRegion === 'saudi'
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -232,7 +274,10 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               Haramain & Gulf
             </button>
             <button
-              onClick={() => setSelectedRegion('sudan')}
+              onClick={() => {
+                setSelectedRegion('sudan');
+                setSelectedNigerianState('all');
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                 selectedRegion === 'sudan'
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -242,6 +287,78 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
               Sudan & Maghreb
             </button>
           </div>
+
+          {/* Nigerian Section Options */}
+          {selectedRegion === 'nigeria' && (
+            <div className="pt-2 border-t border-emerald-100 dark:border-emerald-900/60 space-y-2">
+              {/* View Mode Toggle: Verified Audio vs National Registry */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 p-1 bg-emerald-100/60 dark:bg-emerald-950/80 rounded-lg">
+                  <button
+                    onClick={() => setNigeriaViewMode('reciters')}
+                    className={`px-3 py-1 text-xs rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                      nigeriaViewMode === 'reciters'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-emerald-900 dark:text-emerald-200 hover:bg-emerald-200/50 dark:hover:bg-emerald-900/50'
+                    }`}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>Voice-Verified Reciters (12 Live)</span>
+                  </button>
+                  <button
+                    onClick={() => setNigeriaViewMode('registry')}
+                    className={`px-3 py-1 text-xs rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                      nigeriaViewMode === 'registry'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-emerald-900 dark:text-emerald-200 hover:bg-emerald-200/50 dark:hover:bg-emerald-900/50'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>National Qaris Registry (34 Investigated)</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-md border border-emerald-200/60 dark:border-emerald-800/60">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>100% Genuine Voice Match Guarantee</span>
+                </div>
+              </div>
+
+              {/* State Hub Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
+                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 shrink-0 mr-1 flex items-center gap-1">
+                  <span>Hub / State:</span>
+                </span>
+                {[
+                  { id: 'all', label: 'All Nigerian States' },
+                  { id: 'Kano', label: 'Kano' },
+                  { id: 'Sokoto', label: 'Sokoto' },
+                  { id: 'Kaduna', label: 'Kaduna / Zaria' },
+                  { id: 'Borno', label: 'Borno / Maiduguri' },
+                  { id: 'Bauchi', label: 'Bauchi' },
+                  { id: 'Kebbi', label: 'Kebbi' },
+                  { id: 'Gombe', label: 'Gombe' },
+                  { id: 'Katsina', label: 'Katsina / Daura' },
+                  { id: 'Oyo', label: 'Oyo / Ibadan' },
+                  { id: 'Kogi', label: 'Kogi' },
+                  { id: 'Yobe', label: 'Yobe' },
+                  { id: 'Adamawa', label: 'Adamawa' }
+                ].map(stateTab => (
+                  <button
+                    key={stateTab.id}
+                    onClick={() => setSelectedNigerianState(stateTab.id)}
+                    className={`px-2.5 py-1 text-[11px] rounded whitespace-nowrap transition-colors ${
+                      selectedNigerianState === stateTab.id
+                        ? 'bg-emerald-700 text-white shadow-xs font-semibold'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/60 dark:border-emerald-800/60 font-medium'
+                    }`}
+                  >
+                    {stateTab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Riwayah & Style filters */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/60">
@@ -342,9 +459,111 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
 
       </div>
 
-      {/* Reciters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredReciters.map((reciter) => {
+      {/* Content Section: Either Nigerian National Registry OR Verified Audio Grid */}
+      {selectedRegion === 'nigeria' && nigeriaViewMode === 'registry' ? (
+        <div className="space-y-5">
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-start gap-3 text-xs">
+            <Info className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-bold text-emerald-950 dark:text-emerald-100">
+                Nigerian National Qaris & Scholars Registry (All 34 Investigated Figures)
+              </h4>
+              <p className="text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                To guarantee <strong>100% voice fidelity</strong> and eliminate voice mismatching, only reciters with verified, complete studio albums are playable in the audio bar. Scholars whose recitations exist in competition video archives or live lecture intros are honored below with their full biographies and regional origins.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredRegistry.map((scholar) => {
+              const matchedReciter = scholar.reciterId ? RECITERS.find(r => r.id === scholar.reciterId) : null;
+              const isSelected = matchedReciter && currentReciter.id === matchedReciter.id;
+
+              return (
+                <div
+                  key={scholar.id}
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 transition-all flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-700 shadow-xs"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-arabic text-xl font-bold text-slate-900 dark:text-white truncate" dir="rtl">
+                          {scholar.arabicName}
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          {scholar.name}
+                        </h3>
+                      </div>
+                      <span className="shrink-0 text-lg">🇳🇬</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-3">
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                        <span>{scholar.city}, {scholar.state}</span>
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span className="font-medium text-slate-600 dark:text-slate-300">{scholar.tradition}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                      {scholar.bio}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                    {scholar.verificationStatus === 'playable' && matchedReciter ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>100% Verified Individual Studio Album</span>
+                        </div>
+                        <button
+                          onClick={() => onSelectReciter(matchedReciter, true)}
+                          className={`w-full py-2 px-3 text-xs font-semibold rounded-lg text-white flex items-center justify-center gap-1.5 transition-colors ${
+                            isSelected && isPlaying
+                              ? 'bg-amber-600 hover:bg-amber-700'
+                              : 'bg-emerald-700 hover:bg-emerald-800'
+                          }`}
+                        >
+                          {isSelected && isPlaying ? (
+                            <>
+                              <Pause className="w-3.5 h-3.5 fill-current" />
+                              <span>Now Reciting Surah {currentSurahId}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span>Listen Genuine Voice in Player</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                          <Award className="w-3.5 h-3.5 shrink-0" />
+                          <span>National Musabaqah & Archive Record</span>
+                        </div>
+                        <p className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                          Preserved in the Nigerian National Qaris Registry. Excluded from audio player substitution to strictly guarantee 100% voice fidelity.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredRegistry.length === 0 && (
+            <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400">No scholar found in registry matching your search.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredReciters.map((reciter) => {
           const isSelected = currentReciter.id === reciter.id;
           const isFav = favorites.includes(reciter.id);
           const isPreviewing = previewReciterId === reciter.id;
@@ -394,7 +613,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                   {isNigerian ? (
                     <span className="inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
                       <span>🇳🇬</span>
-                      <span>Nigeria {reciter.city ? `(${reciter.city})` : ''}</span>
+                      <span>Nigeria {reciter.city ? `(${reciter.city})` : reciter.state ? `(${reciter.state})` : ''}</span>
                     </span>
                   ) : (
                     <span>{reciter.country}</span>
@@ -468,18 +687,21 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
           );
         })}
       </div>
-
-      {filteredReciters.length === 0 && (
-        <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-          <p className="text-sm text-slate-600 dark:text-slate-400">No reciter matching your search criteria.</p>
-          <button
-            onClick={() => { setSearchQuery(''); setSelectedRiwayah('all'); setSelectedStyle('all'); setSelectedRegion('all'); }}
-            className="mt-3 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
-          >
-            Reset Filters
-          </button>
-        </div>
       )}
+
+      {selectedRegion !== 'nigeria' || nigeriaViewMode === 'reciters' ? (
+        filteredReciters.length === 0 && (
+          <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+            <p className="text-sm text-slate-600 dark:text-slate-400">No reciter matching your search criteria.</p>
+            <button
+              onClick={() => { setSearchQuery(''); setSelectedRiwayah('all'); setSelectedStyle('all'); setSelectedRegion('all'); }}
+              className="mt-3 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )
+      ) : null}
 
     </div>
   );

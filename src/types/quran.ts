@@ -23,6 +23,8 @@ export interface Reciter {
   country: string;
   countryCode: string;
   city?: string;
+  state?: string;
+  customUrlMap?: Record<number, string>;
   riwayah: Riwayah;
   style: RecitationStyle;
   serverUrl: string; // Base URL where {001..114}.mp3 is served
@@ -31,6 +33,18 @@ export interface Reciter {
   photoUrl?: string;
   bio: string;
   featured?: boolean;
+}
+
+export interface NigerianScholarEntry {
+  id: string;
+  name: string;
+  arabicName: string;
+  city: string;
+  state: string;
+  tradition: string;
+  bio: string;
+  verificationStatus: 'playable' | 'competition_archive' | 'lecture_tafsir_intro';
+  reciterId?: string;
 }
 
 export interface SurahMeta {
