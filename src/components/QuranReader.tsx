@@ -8,13 +8,15 @@ import {
   CheckCircle2, 
   Mic, 
   Volume2, 
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SurahMeta, Reciter, Ayah } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
 import { fetchSurahVerses } from '../services/quranApi';
 import { markSurahCompleted, updateLastStopped } from '../services/storage';
+import { getSurahAudioUrl } from '../data/reciters';
 
 interface QuranReaderProps {
   currentSurahId: number;
@@ -140,6 +142,17 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
         // Confetti fallback
       }
     }
+  };
+
+  const handleDownloadSurah = () => {
+    const url = getSurahAudioUrl(currentReciter, currentSurahId);
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.download = `${currentReciter.name.replace(/[^a-zA-Z0-9]/g, '_')}_Surah_${currentSurahId.toString().padStart(3, '0')}_${currentSurah.transliteration}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredSurahs = SURAHS.filter(s => {
@@ -397,6 +410,15 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
               >
                 <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-emerald-700 dark:text-emerald-400 fill-emerald-100 dark:fill-emerald-900/40' : 'text-slate-400'}`} />
                 <span>{isCompleted ? 'Completed' : 'Mark Done'}</span>
+              </button>
+
+              <button
+                onClick={handleDownloadSurah}
+                title={`Download MP3 of Surah ${currentSurah.nameEnglish} by ${currentReciter.name}`}
+                className="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                <span>Download MP3</span>
               </button>
             </div>
           </div>

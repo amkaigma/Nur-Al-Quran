@@ -1,10 +1,12 @@
 import React from 'react';
-import { BookOpen, Mic, Users, CheckCircle2, Play, Moon, Sun } from 'lucide-react';
+import { BookOpen, Mic, Users, CheckCircle2, Play, Moon, Sun, Layers, Sparkles, Radio, Languages, Clock, Compass } from 'lucide-react';
 import { SurahMeta } from '../types/quran';
 
+export type AppTab = 'riwayah' | 'reciters' | 'haramain' | 'translations' | 'prayer_times' | 'reader' | 'tajweed' | 'progress';
+
 interface NavbarProps {
-  activeTab: 'reciters' | 'reader' | 'tajweed' | 'progress';
-  setActiveTab: (tab: 'reciters' | 'reader' | 'tajweed' | 'progress') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   lastStoppedSurah: SurahMeta;
   onResume: () => void;
   isDarkMode: boolean;
@@ -21,21 +23,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 px-4 sm:px-6 py-3.5">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 py-3.5">
         
-        {/* Zone 1: Single text element wordmark */}
+        {/* Zone 1: Wordmark */}
         <div 
-          onClick={() => setActiveTab('reciters')}
+          onClick={() => setActiveTab('riwayah')}
           className="cursor-pointer text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0 flex items-center gap-2"
         >
           <span className="w-8 h-8 rounded-lg bg-emerald-700 text-amber-300 font-bold flex items-center justify-center text-sm shadow-sm font-arabic">
             نور
           </span>
-          <span>Nur Al-Quran</span>
+          <span className="hidden sm:inline">Nur Al-Quran</span>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/50 hidden md:inline">
+            eTilawa+
+          </span>
         </div>
 
-        {/* Zone 2: 4 clean single-line text navigation links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+        {/* Zone 2: Navigation links */}
+        <nav className="hidden xl:flex items-center gap-4 2xl:gap-5 text-xs 2xl:text-sm font-medium">
+          <button
+            onClick={() => setActiveTab('riwayah')}
+            className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
+              activeTab === 'riwayah' 
+                ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-700 dark:border-emerald-400' 
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Riwayat</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/50">
+              20
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('reciters')}
             className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
@@ -48,6 +68,48 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Reciters</span>
           </button>
 
+          {/* eTilawa Feature: Haramain Portal */}
+          <button
+            onClick={() => setActiveTab('haramain')}
+            className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
+              activeTab === 'haramain' 
+                ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-700 dark:border-emerald-400' 
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>Haramain</span>
+            <span className="text-[9px] font-bold px-1 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+              LIVE
+            </span>
+          </button>
+
+          {/* eTilawa Feature: Audio Translations */}
+          <button
+            onClick={() => setActiveTab('translations')}
+            className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
+              activeTab === 'translations' 
+                ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-700 dark:border-emerald-400' 
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Languages className="w-4 h-4 text-blue-500" />
+            <span>Translations (12)</span>
+          </button>
+
+          {/* eTilawa Feature: Prayer Times & Qibla */}
+          <button
+            onClick={() => setActiveTab('prayer_times')}
+            className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
+              activeTab === 'prayer_times' 
+                ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-700 dark:border-emerald-400' 
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Prayer & Qibla</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('reader')}
             className={`whitespace-nowrap shrink-0 transition-colors py-1 flex items-center gap-1.5 ${
@@ -57,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Quran Reader (1-114)</span>
+            <span>Reader</span>
           </button>
 
           <button
@@ -69,7 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Mic className="w-4 h-4" />
-            <span>Tajweed Studio</span>
+            <span>Tajweed</span>
           </button>
 
           <button
@@ -81,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Progress & Khatma</span>
+            <span>Progress</span>
           </button>
         </nav>
 
@@ -109,47 +171,63 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span className="hidden sm:inline">Resume:</span>
-            <span className="truncate max-w-[130px] font-medium">{lastStoppedSurah.nameEnglish}</span>
+            <span className="truncate max-w-[110px] font-medium">{lastStoppedSurah.nameEnglish}</span>
           </button>
         </div>
 
       </div>
 
-      {/* Mobile nav bar strip */}
-      <div className="flex md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto px-4 py-2 gap-4 text-xs font-medium justify-between items-center">
-        <div className="flex items-center gap-4 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('reciters')}
-            className={`whitespace-nowrap shrink-0 ${activeTab === 'reciters' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
-          >
-            Reciters
-          </button>
-          <button
-            onClick={() => setActiveTab('reader')}
-            className={`whitespace-nowrap shrink-0 ${activeTab === 'reader' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
-          >
-            Reader
-          </button>
-          <button
-            onClick={() => setActiveTab('tajweed')}
-            className={`whitespace-nowrap shrink-0 ${activeTab === 'tajweed' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
-          >
-            Tajweed Studio
-          </button>
-          <button
-            onClick={() => setActiveTab('progress')}
-            className={`whitespace-nowrap shrink-0 ${activeTab === 'progress' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
-          >
-            Progress
-          </button>
-        </div>
-
+      {/* Responsive nav bar strip for screens below XL */}
+      <div className="flex xl:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto px-4 py-2 gap-4 text-xs font-medium items-center scrollbar-none">
         <button
-          onClick={onToggleDarkMode}
-          aria-label="Toggle dark mode"
-          className="p-1.5 rounded-md text-slate-600 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 shrink-0 ml-2"
+          onClick={() => setActiveTab('riwayah')}
+          className={`whitespace-nowrap shrink-0 flex items-center gap-1 ${activeTab === 'riwayah' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
         >
-          {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          <span>Riwayat</span>
+          <span className="text-[9px] px-1 rounded-full bg-emerald-100 dark:bg-emerald-950 font-bold">20</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('reciters')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'reciters' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Reciters
+        </button>
+        <button
+          onClick={() => setActiveTab('haramain')}
+          className={`whitespace-nowrap shrink-0 flex items-center gap-1 ${activeTab === 'haramain' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          <span>Haramain</span>
+          <span className="text-[8px] px-1 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">LIVE</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('translations')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'translations' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Translations
+        </button>
+        <button
+          onClick={() => setActiveTab('prayer_times')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'prayer_times' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Prayer & Qibla
+        </button>
+        <button
+          onClick={() => setActiveTab('reader')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'reader' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Reader
+        </button>
+        <button
+          onClick={() => setActiveTab('tajweed')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'tajweed' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Tajweed
+        </button>
+        <button
+          onClick={() => setActiveTab('progress')}
+          className={`whitespace-nowrap shrink-0 ${activeTab === 'progress' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
+        >
+          Progress
         </button>
       </div>
     </header>

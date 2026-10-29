@@ -2,13 +2,75 @@
  * Core Quran & Tajweed application type definitions
  */
 
+export type RiwayahId =
+  | 'qalun'
+  | 'warsh'
+  | 'al_bazzi'
+  | 'qunbul'
+  | 'ad_duri_abu_amr'
+  | 'as_susi'
+  | 'hisham'
+  | 'ibn_dhakwan'
+  | 'shubah'
+  | 'hafs'
+  | 'khalaf_hamzah'
+  | 'khallad'
+  | 'abu_al_harith'
+  | 'ad_duri_kisai'
+  | 'ibn_wardan'
+  | 'ibn_jammaz'
+  | 'ruways'
+  | 'rawh'
+  | 'ishaq_al_warraq'
+  | 'idris_al_haddad';
+
+export type QiraahId =
+  | 'nafi'
+  | 'ibn_kathir'
+  | 'abu_amr'
+  | 'ibn_amir'
+  | 'asim'
+  | 'hamzah'
+  | 'kisai'
+  | 'abu_jafar'
+  | 'yaqub'
+  | 'khalaf_tenth';
+
+export interface RiwayahMeta {
+  id: RiwayahId;
+  orderNumber: number;
+  nameEnglish: string;
+  nameArabic: string;
+  transliteration: string;
+  qiraahId: QiraahId;
+  qiraahNameEnglish: string;
+  qiraahNameArabic: string;
+  description: string;
+  historicalRegion: string;
+}
+
 export type Riwayah = 
   | "Hafs 'an 'Asim"
   | "Warsh 'an Nafi'"
   | "Qalun 'an Nafi'"
   | "Al-Duri 'an Abi 'Amr"
+  | "Al-Duri 'an Al-Kisa'i"
   | "Shu'bah 'an 'Asim"
-  | "Al-Sousi 'an Abi 'Amr";
+  | "Al-Sousi 'an Abi 'Amr"
+  | "Al-Bazzi 'an Ibn Kathir"
+  | "Qunbul 'an Ibn Kathir"
+  | "Hisham 'an Ibn 'Amir"
+  | "Ibn Dhakwan 'an Ibn 'Amir"
+  | "Khalaf 'an Hamzah"
+  | "Khallad 'an Hamzah"
+  | "Abu al-Harith 'an Al-Kisa'i"
+  | "Ibn Wardan 'an Abi Ja'far"
+  | "Ibn Jammaz 'an Abi Ja'far"
+  | "Ruways 'an Ya'qub"
+  | "Rawh 'an Ya'qub"
+  | "Ishaq al-Warraq 'an Khalaf"
+  | "Idris al-Haddad 'an Khalaf"
+  | string;
 
 export type RecitationStyle = 
   | "Murattal"
@@ -19,20 +81,26 @@ export type RecitationStyle =
 export interface Reciter {
   id: string;
   name: string;
+  alternativeSpellings?: string[];
   arabicName: string;
   country: string;
   countryCode: string;
   city?: string;
   state?: string;
-  customUrlMap?: Record<number, string>;
+  qiraahId: QiraahId;
+  riwayahId: RiwayahId;
   riwayah: Riwayah;
   style: RecitationStyle;
   serverUrl: string; // Base URL where {001..114}.mp3 is served
   backupServerUrl?: string; // High-availability fallback mirror
+  customUrlMap?: Record<number, string>;
   availableSurahs: number[]; // e.g. 1 to 114
   photoUrl?: string;
   bio: string;
   featured?: boolean;
+  verificationStatus: 'verified' | 'pending';
+  verifiedAudioSource: string; // e.g. "mp3quran.net CDN", "Internet Archive Authentic Feed"
+  hasAudio: boolean;
 }
 
 export interface NigerianScholarEntry {

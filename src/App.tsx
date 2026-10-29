@@ -4,12 +4,17 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Navbar } from './components/Navbar';
+import { Navbar, AppTab } from './components/Navbar';
+import { RiwayahSelection } from './components/RiwayahSelection';
 import { RecitersDirectory } from './components/RecitersDirectory';
 import { QuranReader } from './components/QuranReader';
 import { TajweedStudio } from './components/TajweedStudio';
 import { ProgressTracker } from './components/ProgressTracker';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { HaramainMushafsView } from './components/HaramainMushafsView';
+import { AudioTranslationsView } from './components/AudioTranslationsView';
+import { PrayerTimesView } from './components/PrayerTimesView';
+import { FridayKahfBanner } from './components/FridayKahfBanner';
 import { Reciter, SurahMeta } from './types/quran';
 import { RECITERS, getReciterById } from './data/reciters';
 import { SURAHS, getSurahById } from './data/surahs';
@@ -18,7 +23,8 @@ import { useQuranAudio } from './hooks/useQuranAudio';
 
 export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
-  const [activeTab, setActiveTab] = useState<'reciters' | 'reader' | 'tajweed' | 'progress'>('reciters');
+  const [activeTab, setActiveTab] = useState<AppTab>('riwayah');
+  const [targetRiwayahId, setTargetRiwayahId] = useState<string | null>(null);
   
   // Dark mode theme preference persistence
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -125,6 +131,22 @@ export default function App() {
     }
   };
 
+  const handleOpenKahfReader = () => {
+    setCurrentSurahId(18);
+    updateLastStopped(18, 1, currentReciter.id);
+    refreshProgress();
+    setActiveTab('reader');
+  };
+
+  const handlePlayKahfAudio = () => {
+    setCurrentSurahId(18);
+    updateLastStopped(18, 1, currentReciter.id);
+    refreshProgress();
+    if (!isPlaying) {
+      setTimeout(() => togglePlay(), 100);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans pb-28 transition-colors duration-200">
       
@@ -141,6 +163,40 @@ export default function App() {
       {/* Main View Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
+        {/* eTilawa Sunnah: Friday Surah Al-Kahf Prompt */}
+        <FridayKahfBanner
+          currentReciter={currentReciter}
+          onOpenKahfReader={handleOpenKahfReader}
+          onPlayKahfAudio={handlePlayKahfAudio}
+        />
+        
+        {activeTab === 'riwayah' && (
+          <RiwayahSelection
+            currentReciter={currentReciter}
+            currentSurahId={currentSurahId}
+            isPlaying={isPlaying}
+            onSelectReciter={handleSelectReciter}
+            onSelectSurahAndPlay={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              if (!isPlaying) {
+                setTimeout(() => togglePlay(), 100);
+              }
+            }}
+            onOpenReaderWithSurah={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              setActiveTab('reader');
+            }}
+            onOpenTajweedWithReciter={handleOpenTajweedWithReciter}
+            initialSelectedRiwayahId={targetRiwayahId}
+          />
+        )}
+
         {activeTab === 'reciters' && (
           <RecitersDirectory
             currentReciter={currentReciter}
@@ -148,7 +204,64 @@ export default function App() {
             onOpenTajweedWithReciter={handleOpenTajweedWithReciter}
             isPlaying={isPlaying}
             currentSurahId={currentSurahId}
+            onNavigateToRiwayah={(rId) => {
+              setTargetRiwayahId(rId || null);
+              setActiveTab('riwayah');
+            }}
+            onSelectSurahAndPlay={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              if (!isPlaying) {
+                setTimeout(() => togglePlay(), 100);
+              }
+            }}
+            onOpenReaderWithSurah={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              setActiveTab('reader');
+            }}
           />
+        )}
+
+        {/* eTilawa Feature: Haramain Imams Portal */}
+        {activeTab === 'haramain' && (
+          <HaramainMushafsView
+            currentReciter={currentReciter}
+            currentSurahId={currentSurahId}
+            isPlaying={isPlaying}
+            onSelectReciter={handleSelectReciter}
+            onSelectSurahAndPlay={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              if (!isPlaying) {
+                setTimeout(() => togglePlay(), 100);
+              }
+            }}
+            onOpenReaderWithSurah={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              setActiveTab('reader');
+            }}
+            onOpenTajweedWithReciter={handleOpenTajweedWithReciter}
+          />
+        )}
+
+        {/* eTilawa Feature: Audio Translations Portal */}
+        {activeTab === 'translations' && (
+          <AudioTranslationsView />
+        )}
+
+        {/* eTilawa Feature: Prayer Times & Qibla Direction */}
+        {activeTab === 'prayer_times' && (
+          <PrayerTimesView />
         )}
 
         {activeTab === 'reader' && (
@@ -195,15 +308,19 @@ export default function App() {
             <span>·</span>
             <span className="text-slate-700 dark:text-slate-300 font-medium">Nur Al-Quran</span>
             <span>—</span>
-            <span>Reciters Worldwide & Tajweed Alignment</span>
+            <span>eTilawa Edition · Haramain & World Translations</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-600 dark:text-slate-400">
-            <span>114 Surahs Synchronized</span>
+          <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 flex-wrap justify-center">
+            <span>20 Riwayat</span>
             <span>·</span>
-            <span>Hafs, Warsh, Al-Duri</span>
+            <span>Haramain Live 24/7</span>
             <span>·</span>
-            <span>Tajweed Waveform Studio</span>
+            <span>12 Audio Translations</span>
+            <span>·</span>
+            <span>Prayer & Qibla</span>
+            <span>·</span>
+            <span>Direct MP3 Export</span>
           </div>
         </div>
       </footer>
