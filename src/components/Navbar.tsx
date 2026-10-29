@@ -119,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Reader</span>
+            <span>Mushaf & Reader</span>
           </button>
 
           <button
@@ -215,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('reader')}
           className={`whitespace-nowrap shrink-0 ${activeTab === 'reader' ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-600 dark:text-slate-300'}`}
         >
-          Reader
+          Mushaf
         </button>
         <button
           onClick={() => setActiveTab('tajweed')}

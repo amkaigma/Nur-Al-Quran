@@ -9,7 +9,9 @@ import {
   Mic, 
   Volume2, 
   Sparkles,
-  Download
+  Download,
+  BookOpen,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SurahMeta, Reciter, Ayah } from '../types/quran';
@@ -17,6 +19,7 @@ import { SURAHS, getSurahById } from '../data/surahs';
 import { fetchSurahVerses } from '../services/quranApi';
 import { markSurahCompleted, updateLastStopped } from '../services/storage';
 import { getSurahAudioUrl } from '../data/reciters';
+import { TraditionalMushafReader } from './TraditionalMushafReader';
 
 interface QuranReaderProps {
   currentSurahId: number;
@@ -39,6 +42,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   onProgressUpdate,
   onOpenTajweedTarget
 }) => {
+  const [readerMode, setReaderMode] = useState<'mushaf_pages' | 'verse_list'>('mushaf_pages');
   const [surahSearch, setSurahSearch] = useState('');
   const [quickJumpInput, setQuickJumpInput] = useState('');
   const [isJumpDropdownOpen, setIsJumpDropdownOpen] = useState(false);
@@ -167,15 +171,76 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   });
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="space-y-6">
       
-      {/* Left Sidebar: 114 Surahs Navigation List */}
-      <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[750px] transition-colors">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Index of 114 Surahs
-            </h2>
+      {/* ── Quran Reader Mode Switcher Bar ── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+        
+        {/* Mode Selector Segmented Controls */}
+        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto">
+          <button
+            onClick={() => setReaderMode('mushaf_pages')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              readerMode === 'mushaf_pages'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Traditional Printed Mushaf (Pages 1-604)</span>
+            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+              Mushaf
+            </span>
+          </button>
+
+          <button
+            onClick={() => setReaderMode('verse_list')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              readerMode === 'verse_list'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Verse Study View</span>
+          </button>
+        </div>
+
+        {/* Current Surah Context Meta */}
+        <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pr-2">
+          <span>Current:</span>
+          <strong className="text-slate-900 dark:text-white font-bold">Surah {currentSurah.id}. {currentSurah.nameEnglish}</strong>
+          <span className="font-arabic text-emerald-700 dark:text-emerald-400 font-bold">({currentSurah.nameArabic})</span>
+          <span>·</span>
+          <span>Page {currentSurah.pageStart}</span>
+          <span>·</span>
+          <span>Juz {currentSurah.juzStart}</span>
+        </div>
+
+      </div>
+
+      {/* ── Mode 1: Traditional Printed Mushaf (Default & Complete Pages) ── */}
+      {readerMode === 'mushaf_pages' ? (
+        <TraditionalMushafReader
+          initialPage={currentSurah.pageStart}
+          currentSurahId={currentSurahId}
+          onSelectSurah={onSelectSurah}
+          currentReciter={currentReciter}
+          isPlaying={isPlaying}
+          onTogglePlay={onTogglePlay}
+          onSwitchToStudyView={() => setReaderMode('verse_list')}
+        />
+      ) : (
+        /* ── Mode 2: Detailed Verse-by-Verse List & Study Layout ── */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Sidebar: 114 Surahs Navigation List */}
+          <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[750px] transition-colors">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Index of 114 Surahs
+                </h2>
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               <span>{completedSurahIds.length}</span>
               <span aria-hidden="true"> / </span>
@@ -547,7 +612,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
         </div>
 
       </div>
-
     </div>
-  );
+  )}
+
+</div>
+);
 };
