@@ -27,16 +27,11 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
   const [previewSurahId, setPreviewSurahId] = useState<number | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
 
-  if (!isOpen || !reciter) return null;
-
-  const isCurrentReciterPlaying = (surahId: number) => {
-    return isPlaying && currentSurahId === surahId;
-  };
-
   const filteredSurahs = useMemo(() => {
+    if (!reciter) return [];
     const q = search.toLowerCase().trim();
     return SURAHS.filter(s => {
-      const isAvailable = reciter.availableSurahs.includes(s.id);
+      const isAvailable = reciter.availableSurahs?.includes(s.id);
       if (!isAvailable) return false;
       if (!q) return true;
       return (
@@ -48,6 +43,12 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
       );
     });
   }, [search, reciter]);
+
+  if (!isOpen || !reciter) return null;
+
+  const isCurrentReciterPlaying = (surahId: number) => {
+    return isPlaying && currentSurahId === surahId;
+  };
 
   const handleQuickPreview = (e: React.MouseEvent, surahId: number) => {
     e.stopPropagation();
