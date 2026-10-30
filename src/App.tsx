@@ -15,6 +15,7 @@ import { HaramainMushafsView } from './components/HaramainMushafsView';
 import { AudioTranslationsView } from './components/AudioTranslationsView';
 import { PrayerTimesView } from './components/PrayerTimesView';
 import { FridayKahfBanner } from './components/FridayKahfBanner';
+import { AudioHealthCheckerModal } from './components/AudioHealthCheckerModal';
 import { Reciter, SurahMeta } from './types/quran';
 import { RECITERS, getReciterById } from './data/reciters';
 import { SURAHS, getSurahById } from './data/surahs';
@@ -25,6 +26,7 @@ export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
   const [activeTab, setActiveTab] = useState<AppTab>('riwayah');
   const [targetRiwayahId, setTargetRiwayahId] = useState<string | null>(null);
+  const [isAudioHealthOpen, setIsAudioHealthOpen] = useState<boolean>(false);
   
   // Dark mode theme preference persistence
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -158,6 +160,7 @@ export default function App() {
         onResume={handleResumeLastStopped}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
+        onOpenAudioHealth={() => setIsAudioHealthOpen(true)}
       />
 
       {/* Main View Area */}
@@ -269,6 +272,7 @@ export default function App() {
             currentSurahId={currentSurahId}
             onSelectSurah={handleSurahChange}
             currentReciter={currentReciter}
+            onSelectReciter={handleSelectReciter}
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
             completedSurahIds={progress.completedSurahIds}
@@ -348,6 +352,18 @@ export default function App() {
         onPrev={prevSurah}
         onOpenReader={() => setActiveTab('reader')}
         onOpenTajweed={() => setActiveTab('tajweed')}
+      />
+
+      {/* Global Audio Health Diagnostics Modal */}
+      <AudioHealthCheckerModal
+        isOpen={isAudioHealthOpen}
+        onClose={() => setIsAudioHealthOpen(false)}
+        currentReciter={currentReciter}
+        onSelectReciter={handleSelectReciter}
+        onSelectSurah={(sId) => {
+          handleSurahChange(sId);
+          setActiveTab('reader');
+        }}
       />
 
     </div>

@@ -1,0 +1,16 @@
+[
+  {
+    "reciterId": "okasha-kameny-duri",
+    "name": "Shaykh Okasha Kameny (Ad-Duri)",
+    "surah": 60,
+    "url": "https://archive.org/download/Okasha-Kameny/060.mp3",
+    "error": 404
+  },
+  {
+    "reciterId": "ahmad-deban-ibn-jammaz",
+    "name": "Ahmad Deban (Ibn Jammaz)",
+    "surah": 58,
+    "url": "https://cdn.mp3quran.net/audio/ahmad-deeban/r13/058.mp3",
+    "error": 404
+  }
+]

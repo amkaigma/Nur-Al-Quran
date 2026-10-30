@@ -25,6 +25,7 @@ interface QuranReaderProps {
   currentSurahId: number;
   onSelectSurah: (surahId: number) => void;
   currentReciter: Reciter;
+  onSelectReciter?: (reciter: Reciter) => void;
   isPlaying: boolean;
   onTogglePlay: () => void;
   completedSurahIds: number[];
@@ -36,6 +37,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   currentSurahId,
   onSelectSurah,
   currentReciter,
+  onSelectReciter,
   isPlaying,
   onTogglePlay,
   completedSurahIds,
@@ -226,6 +228,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
           currentSurahId={currentSurahId}
           onSelectSurah={onSelectSurah}
           currentReciter={currentReciter}
+          onSelectReciter={onSelectReciter}
           isPlaying={isPlaying}
           onTogglePlay={onTogglePlay}
           onSwitchToStudyView={() => setReaderMode('verse_list')}

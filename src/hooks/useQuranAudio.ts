@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Reciter } from '../types/quran';
-import { getSurahAudioUrl, getSurahAudioFallbacks } from '../data/reciters';
+import { getSurahAudioUrl, getSurahAudioFallbacks, isSurahAvailableForReciter } from '../data/reciters';
 import { updateLastStopped } from '../services/storage';
 
 export interface UseQuranAudioProps {
@@ -20,6 +20,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
   const [loopMode, setLoopMode] = useState<'off' | 'surah' | 'all'>('surah');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
+  const [isUnavailable, setIsUnavailable] = useState<boolean>(false);
 
   // Fallback mirrors tracking
   const fallbacksRef = useRef<string[]>([]);
@@ -104,6 +105,9 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     const audio = audioRef.current;
     if (!audio) return;
 
+    const available = isSurahAvailableForReciter(currentReciter, currentSurahId);
+    setIsUnavailable(!available);
+
     const fallbacks = getSurahAudioFallbacks(currentReciter, currentSurahId);
     fallbacksRef.current = fallbacks;
     fallbackIndexRef.current = 0;
@@ -111,7 +115,6 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     const audioUrl = fallbacks[0] || getSurahAudioUrl(currentReciter, currentSurahId);
     const wasPlaying = isPlaying;
 
-    setIsLoading(true);
     setHasError(false);
     audio.src = audioUrl;
     audio.playbackRate = playbackRate;
@@ -120,20 +123,32 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     // Track last stopped in storage
     updateLastStopped(currentSurahId, 1, currentReciter.id);
 
-    if (wasPlaying) {
-      audio.play().then(() => setIsPlaying(true)).catch((err) => {
+    if (wasPlaying && available) {
+      setIsLoading(true);
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setIsLoading(false);
+      }).catch((err) => {
         console.warn('Playback interrupted:', err);
         // Attempt immediate failover if initial source fails
         if (fallbackIndexRef.current < fallbacksRef.current.length - 1) {
           fallbackIndexRef.current += 1;
           audio.src = fallbacksRef.current[fallbackIndexRef.current];
-          audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          audio.play().then(() => {
+            setIsPlaying(true);
+            setIsLoading(false);
+          }).catch(() => {
+            setIsPlaying(false);
+            setIsLoading(false);
+          });
         } else {
           setIsPlaying(false);
+          setIsLoading(false);
         }
       });
     } else {
       setIsPlaying(false);
+      setIsLoading(false);
     }
   }, [currentReciter, currentSurahId]);
 
@@ -145,6 +160,14 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
       audio.pause();
       setIsPlaying(false);
     } else {
+      const available = isSurahAvailableForReciter(currentReciter, currentSurahId);
+      if (!available) {
+        setIsUnavailable(true);
+        setIsLoading(false);
+        setIsPlaying(false);
+        return;
+      }
+      setIsUnavailable(false);
       setIsLoading(true);
       setHasError(false);
       audio.play()
@@ -233,6 +256,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     loopMode,
     isLoading,
     hasError,
+    isUnavailable,
     togglePlay,
     seek,
     changePlaybackRate,

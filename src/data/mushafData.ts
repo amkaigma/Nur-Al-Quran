@@ -1,4 +1,5 @@
 import { SURAHS } from './surahs';
+import { SurahMeta } from '../types/quran';
 
 export interface JuzInfo {
   number: number;
@@ -91,3 +92,35 @@ export function toArabicNumerals(num: number | string): string {
     .toString()
     .replace(/[0-9]/g, (digit) => arabicDigits[parseInt(digit, 10)]);
 }
+
+/**
+ * Returns all Surahs that appear on or span across a given Madinah Mushaf page (1-604).
+ */
+export function getSurahsForPage(page: number): SurahMeta[] {
+  const clamped = Math.max(1, Math.min(604, page));
+  const surahsOnPage: SurahMeta[] = [];
+
+  for (let i = 0; i < SURAHS.length; i++) {
+    const current = SURAHS[i];
+    const next = SURAHS[i + 1];
+
+    if (current.pageStart === clamped) {
+      surahsOnPage.push(current);
+    } else if (current.pageStart < clamped && next && next.pageStart > clamped) {
+      surahsOnPage.push(current);
+    } else if (current.pageStart < clamped && !next) {
+      surahsOnPage.push(current);
+    }
+  }
+
+  return surahsOnPage.length > 0 ? surahsOnPage : [SURAHS[0]];
+}
+
+/**
+ * Returns the primary (first) Surah appearing on a given Mushaf page.
+ */
+export function getPrimarySurahForPage(page: number): SurahMeta {
+  const surahs = getSurahsForPage(page);
+  return surahs[0];
+}
+

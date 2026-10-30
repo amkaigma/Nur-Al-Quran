@@ -24,7 +24,10 @@ import {
   Compass,
   FileText,
   Info,
-  X
+  X,
+  Activity,
+  AlertTriangle,
+  Radio
 } from 'lucide-react';
 import { Reciter, SurahMeta } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
@@ -33,16 +36,20 @@ import {
   getJuzForPage, 
   getPageImageUrl, 
   preloadAdjacentPages, 
-  toArabicNumerals 
+  toArabicNumerals,
+  getSurahsForPage,
+  getPrimarySurahForPage
 } from '../data/mushafData';
 import { fetchMushafPage, MushafPageContent, PageAyah } from '../services/mushafService';
-import { getSurahAudioUrl } from '../data/reciters';
+import { getSurahAudioUrl, isSurahAvailableForReciter, RECITERS } from '../data/reciters';
+import { AudioHealthCheckerModal } from './AudioHealthCheckerModal';
 
 interface TraditionalMushafReaderProps {
   initialPage?: number;
   currentSurahId: number;
   onSelectSurah: (surahId: number) => void;
   currentReciter: Reciter;
+  onSelectReciter?: (reciter: Reciter) => void;
   isPlaying: boolean;
   onTogglePlay: () => void;
   onSwitchToStudyView?: () => void;
@@ -57,6 +64,7 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
   currentSurahId,
   onSelectSurah,
   currentReciter,
+  onSelectReciter,
   isPlaying,
   onTogglePlay,
   onSwitchToStudyView
@@ -102,9 +110,19 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
   // Single verse audio preview state
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [isPreviewingAyah, setIsPreviewingAyah] = useState<boolean>(false);
+  const [isAudioHealthOpen, setIsAudioHealthOpen] = useState<boolean>(false);
 
   // Container ref for fullscreen
   const readerContainerRef = useRef<HTMLDivElement>(null);
+
+  // Compute all Surahs appearing on the currently viewed page
+  const surahsOnCurrentPage = React.useMemo(() => {
+    return getSurahsForPage(currentPage);
+  }, [currentPage]);
+
+  const primarySurahOnPage = surahsOnCurrentPage[0] || getSurahById(1)!;
+  const activeDisplaySurah = surahsOnCurrentPage.find(s => s.id === currentSurahId) || primarySurahOnPage;
+  const isCurrentSurahAvailable = isSurahAvailableForReciter(currentReciter, activeDisplaySurah.id);
 
   // Update current page when currentSurahId changes externally
   useEffect(() => {
@@ -139,7 +157,7 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
     }
   }, [currentPage, displayMode, spreadMode]);
 
-  // Page navigation handlers
+  // Page navigation handlers with automatic Surah synchronization
   const goToPage = useCallback((pageNum: number) => {
     const clamped = Math.max(1, Math.min(604, pageNum));
     setCurrentPage(clamped);
@@ -149,7 +167,11 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
       previewAudio.pause();
       setIsPreviewingAyah(false);
     }
-  }, [previewAudio]);
+    const pageSurahs = getSurahsForPage(clamped);
+    if (pageSurahs.length > 0 && !pageSurahs.some(s => s.id === currentSurahId)) {
+      onSelectSurah(pageSurahs[0].id);
+    }
+  }, [previewAudio, currentSurahId, onSelectSurah]);
 
   // In Arabic/Quran reading, turning to next page progresses forward (page + 1 or +2)
   const handleNextPage = () => {
@@ -232,21 +254,15 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
   const handlePlayAyahAudio = (ayah: PageAyah) => {
     if (previewAudio) {
       previewAudio.pause();
-    }
-    const url = getSurahAudioUrl(currentReciter, ayah.surahNumber);
-    const audio = new Audio(url);
-    audio.play().then(() => {
-      setPreviewAudio(audio);
-      setIsPreviewingAyah(true);
-    }).catch(err => {
-      console.warn('Ayah audio play error:', err);
-      setIsPreviewingAyah(false);
-    });
-
-    audio.onended = () => {
-      setIsPreviewingAyah(false);
       setPreviewAudio(null);
-    };
+      setIsPreviewingAyah(false);
+    }
+    if (currentSurahId !== ayah.surahNumber) {
+      onSelectSurah(ayah.surahNumber);
+    }
+    if (!isPlaying) {
+      onTogglePlay();
+    }
   };
 
   const currentJuz = getJuzForPage(currentPage);
@@ -475,6 +491,133 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
         </div>
 
       </div>
+
+      {/* ── Mushaf Audio Companion Bar ── */}
+      <div className={`p-3 rounded-xl mb-3 border transition-colors flex flex-col md:flex-row items-center justify-between gap-3 ${
+        isDark ? 'bg-slate-950/90 border-slate-800' : 'bg-emerald-950 text-white border-emerald-900 shadow-md'
+      }`}>
+        {/* Left: Active Surah(s) on this Mushaf Page with Direct Play/Pause */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Main Play/Pause Button */}
+          <button
+            onClick={() => {
+              if (!surahsOnCurrentPage.some(s => s.id === currentSurahId)) {
+                onSelectSurah(primarySurahOnPage.id);
+                if (!isPlaying) onTogglePlay();
+              } else {
+                onTogglePlay();
+              }
+            }}
+            disabled={!isCurrentSurahAvailable}
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow transition-all ${
+              !isCurrentSurahAvailable
+                ? 'bg-slate-700 opacity-50 cursor-not-allowed text-slate-400'
+                : isPlaying
+                ? 'bg-amber-400 text-slate-950 hover:bg-amber-300 scale-105'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+            }`}
+            title={isPlaying ? "Pause Surah" : `Play Surah ${activeDisplaySurah.nameEnglish}`}
+          >
+            {isPlaying ? (
+              <Pause className="w-4 h-4 fill-current" />
+            ) : (
+              <Play className="w-4 h-4 fill-current ml-0.5" />
+            )}
+          </button>
+
+          {/* Surah Pills: If single or multiple surahs on this page */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-emerald-200/80 mr-1 hidden sm:inline">
+              Page {currentPage} Surah{surahsOnCurrentPage.length > 1 ? 's' : ''}:
+            </span>
+            {surahsOnCurrentPage.map(surah => {
+              const isSelected = currentSurahId === surah.id;
+              const isSurahPlay = isSelected && isPlaying;
+              const hasAudioForReciter = isSurahAvailableForReciter(currentReciter, surah.id);
+
+              return (
+                <button
+                  key={surah.id}
+                  onClick={() => {
+                    if (currentSurahId !== surah.id) {
+                      onSelectSurah(surah.id);
+                      if (!isPlaying) onTogglePlay();
+                    } else {
+                      onTogglePlay();
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white border border-emerald-400 shadow-xs ring-2 ring-amber-400/30'
+                      : 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 border border-emerald-800/80'
+                  }`}
+                >
+                  {isSurahPlay ? (
+                    <span className="flex items-center gap-0.5">
+                      <span className="w-1 h-3 bg-amber-300 rounded-full animate-pulse" />
+                      <span className="w-1 h-2 bg-amber-300 rounded-full animate-pulse delay-75" />
+                      <span className="w-1 h-3 bg-amber-300 rounded-full animate-pulse delay-150" />
+                    </span>
+                  ) : (
+                    <span className="text-[10px] opacity-75 font-mono">{surah.id}.</span>
+                  )}
+                  <span>{surah.nameEnglish}</span>
+                  <span className="font-arabic text-amber-300 text-xs">({surah.nameArabic})</span>
+                  {!hasAudioForReciter && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/30 text-amber-200 border border-amber-400/40">
+                      Partial
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: Reciter Badge & Diagnostic Audio Check Button */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-200">
+            <span className="truncate max-w-[170px] sm:max-w-xs font-medium">
+              🎙️ {currentReciter.countryCode === 'NG' ? `🇳🇬 ${currentReciter.name}` : currentReciter.name}
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-800/80 border border-emerald-700/80 text-amber-300 font-mono hidden sm:inline">
+              {currentReciter.riwayah}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setIsAudioHealthOpen(true)}
+            className="px-2 py-1 rounded-md bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-700 text-amber-300 text-[11px] font-semibold flex items-center gap-1 transition-colors shrink-0"
+            title="Inspect Audio Health & Stream Status"
+          >
+            <Activity className="w-3 h-3 text-amber-300" />
+            <span className="hidden sm:inline">Audio Health</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Reciter Availability Warning Banner if active surah is not in partial Riwayah */}
+      {!isCurrentSurahAvailable && (
+        <div className="p-3 rounded-xl mb-3 border border-amber-500/50 bg-amber-950/80 text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              <strong>Surah {activeDisplaySurah.nameEnglish}</strong> is not recorded in {currentReciter.riwayah} by {currentReciter.name} (only {currentReciter.availableSurahs?.length || 0} surahs in this canonical archive).
+            </span>
+          </div>
+          {onSelectReciter && (
+            <button
+              onClick={() => {
+                const fullReciter = RECITERS.find(r => r.id === 'mahmoud-khalil-al-husary') || RECITERS[0];
+                onSelectReciter(fullReciter);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shrink-0 transition-colors"
+            >
+              Switch to Complete Reciter (Al-Husary)
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Page Content Display Area ── */}
       <div className="flex-1 flex flex-col items-center justify-center relative min-h-[600px] overflow-hidden select-none">
@@ -798,6 +941,20 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
           <span>{bookmarks.length} Bookmarks saved</span>
         </div>
       </div>
+
+      {/* ── Audio Stream Health & Reciter Diagnostic Modal ── */}
+      <AudioHealthCheckerModal
+        isOpen={isAudioHealthOpen}
+        onClose={() => setIsAudioHealthOpen(false)}
+        currentReciter={currentReciter}
+        onSelectReciter={(r) => {
+          if (onSelectReciter) onSelectReciter(r);
+        }}
+        onSelectSurah={(sId) => {
+          onSelectSurah(sId);
+          goToPage(getSurahById(sId)?.pageStart || 1);
+        }}
+      />
 
     </div>
   );

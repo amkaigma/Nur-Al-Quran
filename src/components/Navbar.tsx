@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Mic, Users, CheckCircle2, Play, Moon, Sun, Layers, Sparkles, Radio, Languages, Clock, Compass } from 'lucide-react';
+import { BookOpen, Mic, Users, CheckCircle2, Play, Moon, Sun, Layers, Sparkles, Radio, Languages, Clock, Compass, Activity } from 'lucide-react';
 import { SurahMeta } from '../types/quran';
 
 export type AppTab = 'riwayah' | 'reciters' | 'haramain' | 'translations' | 'prayer_times' | 'reader' | 'tajweed' | 'progress';
@@ -11,6 +11,7 @@ interface NavbarProps {
   onResume: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  onOpenAudioHealth?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,7 +20,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   lastStoppedSurah,
   onResume,
   isDarkMode,
-  onToggleDarkMode
+  onToggleDarkMode,
+  onOpenAudioHealth
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -150,6 +152,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zone 3: 1 primary action & dark mode toggle */}
         <div className="flex items-center gap-2.5 shrink-0">
           
+          {/* Audio Health Diagnostic Trigger */}
+          {onOpenAudioHealth && (
+            <button
+              onClick={onOpenAudioHealth}
+              title="Inspect Audio Health, Streams, and Reciters Status"
+              aria-label="Audio stream health diagnostics"
+              className="p-2 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors flex items-center justify-center border border-emerald-300 dark:border-emerald-800"
+            >
+              <Activity className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Dark Mode Theme Toggle */}
           <button
             onClick={onToggleDarkMode}

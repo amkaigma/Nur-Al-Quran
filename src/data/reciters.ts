@@ -427,8 +427,8 @@ export const RECITERS: Reciter[] = [
     riwayahId: 'hafs',
     riwayah: "Hafs 'an 'Asim",
     style: 'Murattal',
-    serverUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
-    backupServerUrl: 'https://archive.org/download/syaikh-ahmad-sulaiman/',
+    serverUrl: 'https://archive.org/download/syaikh-ahmad-sulaiman/',
+    backupServerUrl: 'https://podcasts.qurancentral.com/ahmad-sulaiman/',
     availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
     bio: 'The undisputed premier Quran reciter of Nigeria (Alaramma). Recorded in Kano, his deeply emotive, tear-evoking vocal cadence and classical West African rhythm are listened to by tens of millions across Nigeria and the diaspora.',
     featured: true,
@@ -1292,7 +1292,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ad-Duri from Abu Amr",
     style: 'Murattal',
     serverUrl: 'https://archive.org/download/Okasha-Kameny/',
-    availableSurahs: [1, 2, 3, 4, 7, 9, 11, 17, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114],
+    availableSurahs: [1, 2, 3, 4, 7, 9, 11, 17, 20, 23, 26, 27, 28, 31, 34, 36, 37, 38, 39, 40, 42, 49, 53, 54, 55, 61, 66, 67, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114],
     bio: 'Beloved across Northern Nigeria and the Sahel for his soul-shaking recitations in the traditional African pentatonic Maqam and the Riwayah of Al-Duri.',
     featured: true,
     verificationStatus: 'verified',
@@ -1374,8 +1374,8 @@ export const RECITERS: Reciter[] = [
     riwayah: "As-Susi",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r9/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-    bio: 'Complete canonical recording of the Riwayah of As-Susi, demonstrating the Idgham Kabir rules with scholarly discipline.',
+    availableSurahs: [1, 82, 86, 87, 88, 93, 94, 95, 99, 102, 103, 106, 108, 109, 110, 111, 112, 113, 114],
+    bio: 'Canonical recording of the Riwayah of As-Susi, demonstrating the Idgham Kabir rules with scholarly discipline.',
     featured: false,
     verificationStatus: 'verified',
     verifiedAudioSource: 'mp3quran.net CDN',
@@ -1397,7 +1397,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Hisham",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r12/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 85, 90, 92, 93, 94, 95, 99, 100, 101, 103, 105, 107, 108, 110, 112, 113, 114],
     bio: 'Canonical reading of Imam Hisham from Imam Ibn \'Amir ash-Shami, preserving the historic Damascus transmission of the Quran.',
     featured: true,
     verificationStatus: 'verified',
@@ -1439,8 +1439,8 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ibn Dhakwan",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r8/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-    bio: 'Complete Quranic recitation in the Riwayah of Ibn Dhakwan, following the Shami tradition of the Umayyad Mosque of Damascus.',
+    availableSurahs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 77, 83, 85, 86, 88, 90, 92, 93, 94, 95, 96, 97, 99, 100, 101, 103, 105, 107, 108, 109, 112, 113, 114],
+    bio: 'Canonical Quranic recitation in the Riwayah of Ibn Dhakwan, following the Shami tradition of Damascus.',
     featured: false,
     verificationStatus: 'verified',
     verifiedAudioSource: 'mp3quran.net CDN',
@@ -1681,8 +1681,8 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ad-Duri from al-Kisa'i",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r10/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-    bio: 'Full recitation in the Riwayah of Ad-Duri from Al-Kisa\'i, capturing all historical Imalat accurately.',
+    availableSurahs: [1, 94, 95, 100, 103, 105, 106, 108, 109, 110, 112, 113, 114],
+    bio: 'Canonical recitation in the Riwayah of Ad-Duri from Al-Kisa\'i, capturing all historical Imalat accurately.',
     featured: false,
     verificationStatus: 'verified',
     verifiedAudioSource: 'mp3quran.net CDN',
@@ -1704,7 +1704,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ibn Jammaz",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r13/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [1, 93, 100, 102, 103, 109, 110, 111, 112, 113, 114],
     bio: 'Canonical reading of Ibn Jammaz from Imam Abu Ja\'far al-Madani, preserving early Madinan Tashil and letter articulation.',
     featured: true,
     verificationStatus: 'verified',
@@ -1860,3 +1860,12 @@ export function getVerifiedReciterCountForRiwayah(riwayahId: string): number {
 export function getRecitersByRiwayah(riwayahId: string): Reciter[] {
   return RECITERS.filter(r => r.riwayahId === riwayahId && r.verificationStatus === 'verified' && r.hasAudio);
 }
+
+/**
+ * Checks if a specific Surah is available for the given reciter.
+ */
+export function isSurahAvailableForReciter(reciter: Reciter, surahId: number): boolean {
+  if (!reciter.availableSurahs || reciter.availableSurahs.length === 0) return true;
+  return reciter.availableSurahs.includes(surahId);
+}
+

@@ -12,6 +12,7 @@ import {
   BookOpen 
 } from 'lucide-react';
 import { Reciter, SurahMeta } from '../types/quran';
+import { isSurahAvailableForReciter } from '../data/reciters';
 
 interface AudioPlayerBarProps {
   currentReciter: Reciter;
@@ -69,6 +70,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 }) => {
   const nextLoop = loopMode === 'surah' ? 'all' : (loopMode === 'all' ? 'off' : 'surah');
   const nextRate = playbackRate === 1 ? 1.25 : (playbackRate === 1.25 ? 0.75 : 1);
+
+  const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl">
@@ -135,8 +138,19 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
             {/* Play/Pause Main Button */}
             <button
               onClick={onTogglePlay}
-              disabled={isLoading}
-              className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow transition-transform active:scale-95"
+              disabled={!isAvailable}
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-transform active:scale-95 ${
+                !isAvailable
+                  ? 'bg-slate-700 opacity-50 cursor-not-allowed text-slate-400'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              }`}
+              title={
+                !isAvailable 
+                  ? `Surah ${currentSurah.nameEnglish} is not recorded in this Riwayah by ${currentReciter.name}` 
+                  : isPlaying 
+                  ? 'Pause' 
+                  : 'Play'
+              }
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -159,7 +173,11 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
           </div>
 
           {/* Time scrubber text or Error indicator */}
-          {hasError ? (
+          {!isAvailable ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-medium bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/80">
+              <span>Surah not recorded in this Riwayah</span>
+            </div>
+          ) : hasError ? (
             <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-medium bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/80 animate-pulse">
               <span>Stream interrupted. Tap play to retry mirror</span>
             </div>
