@@ -149,6 +149,7 @@ export interface Ayah {
 export interface ReadingProgress {
   lastStoppedSurahId: number;
   lastStoppedAyahId: number;
+  lastStoppedPage?: number;
   lastReciterId: string;
   lastUpdatedTimestamp: number;
   completedSurahIds: number[]; // array of completed surah IDs

@@ -5,15 +5,23 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, AppTab } from './components/Navbar';
+import { HomeDashboard } from './components/HomeDashboard';
 import { RiwayahSelection } from './components/RiwayahSelection';
 import { RecitersDirectory } from './components/RecitersDirectory';
 import { QuranReader } from './components/QuranReader';
-import { TajweedStudio } from './components/TajweedStudio';
-import { ProgressTracker } from './components/ProgressTracker';
-import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { TraditionalMushafReader } from './components/TraditionalMushafReader';
+import { IslamicLibraryView } from './components/IslamicLibraryView';
+import { PrayerTimesView } from './components/PrayerTimesView';
+import { QiblaView } from './components/QiblaView';
 import { HaramainMushafsView } from './components/HaramainMushafsView';
 import { AudioTranslationsView } from './components/AudioTranslationsView';
-import { PrayerTimesView } from './components/PrayerTimesView';
+import { TajweedStudio } from './components/TajweedStudio';
+import { ProgressTracker } from './components/ProgressTracker';
+import { DailyQuranGoal } from './components/DailyQuranGoal';
+import { SettingsView } from './components/SettingsView';
+import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { MobileCompactAudioPlayer } from './components/MobileCompactAudioPlayer';
+import { ReciterSwitcherDrawer } from './components/ReciterSwitcherDrawer';
 import { FridayKahfBanner } from './components/FridayKahfBanner';
 import { AudioHealthCheckerModal } from './components/AudioHealthCheckerModal';
 import { Reciter, SurahMeta } from './types/quran';
@@ -21,13 +29,20 @@ import { RECITERS, getReciterById } from './data/reciters';
 import { SURAHS, getSurahById } from './data/surahs';
 import { getStoredProgress, updateLastStopped } from './services/storage';
 import { useQuranAudio } from './hooks/useQuranAudio';
+import { checkAndTriggerIqama, getIqamaSettings } from './services/iqamaService';
+import { calculatePrayerTimes, WORLD_CITIES } from './services/prayerTimes';
+import { Bell, Volume2, X } from 'lucide-react';
 
 export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
-  const [activeTab, setActiveTab] = useState<AppTab>('riwayah');
+  const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [targetRiwayahId, setTargetRiwayahId] = useState<string | null>(null);
   const [isAudioHealthOpen, setIsAudioHealthOpen] = useState<boolean>(false);
+  const [isReciterSwitcherOpen, setIsReciterSwitcherOpen] = useState<boolean>(false);
   
+  // Notification toast for automatic Iqama
+  const [iqamaToast, setIqamaToast] = useState<{ prayer: string; message: string } | null>(null);
+
   // Dark mode theme preference persistence
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     try {
@@ -149,10 +164,61 @@ export default function App() {
     }
   };
 
+  // Background Automatic Iqama Monitor
+  useEffect(() => {
+    const checkIqama = () => {
+      const settings = getIqamaSettings();
+      if (!settings.enabled) return;
+
+      const now = new Date();
+      // Calculate times for user's city or Makkah default
+      const city = WORLD_CITIES[0];
+      const prayerTimes = calculatePrayerTimes(now, city.lat, city.lng, city.timezone, city.method);
+
+      // Array of prayers with their military time strings
+      const prayers: Array<{ key: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; time: string; name: string }> = [
+        { key: 'fajr', time: prayerTimes.fajr, name: 'Fajr' },
+        { key: 'dhuhr', time: prayerTimes.dhuhr, name: 'Dhuhr' },
+        { key: 'asr', time: prayerTimes.asr, name: 'Asr' },
+        { key: 'maghrib', time: prayerTimes.maghrib, name: 'Maghrib' },
+        { key: 'isha', time: prayerTimes.isha, name: 'Isha' },
+      ];
+
+      for (const p of prayers) {
+        if (!settings.selectedPrayers[p.key]) continue;
+
+        // Parse time: "05:14"
+        const [hours, minutes] = p.time.split(':').map(Number);
+        const prayerDate = new Date();
+        prayerDate.setHours(hours, minutes, 0, 0);
+
+        // Add delay minutes (e.g. 10 minutes for Iqama)
+        const iqamaTime = new Date(prayerDate.getTime() + settings.delayMinutes * 60000);
+
+        // Check if within 45 seconds of iqama time
+        const diffMs = Math.abs(now.getTime() - iqamaTime.getTime());
+        if (diffMs < 45000) {
+          const triggered = checkAndTriggerIqama(p.key, p.time, (name) => {
+            setIqamaToast({
+              prayer: name.toUpperCase(),
+              message: `Automatic Iqama recitation commenced for ${name}. Qad qamatis-Salah.`
+            });
+            setTimeout(() => setIqamaToast(null), 10000);
+          });
+          if (triggered) break;
+        }
+      }
+    };
+
+    // Run every 30 seconds
+    const interval = setInterval(checkIqama, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans pb-28 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans pb-36 md:pb-28 transition-colors duration-200">
       
-      {/* 3-Zone Navigation Header */}
+      {/* Responsive Header & Navigation (Mobile, Tablet & Desktop) */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -162,6 +228,29 @@ export default function App() {
         onToggleDarkMode={toggleDarkMode}
         onOpenAudioHealth={() => setIsAudioHealthOpen(true)}
       />
+
+      {/* Iqama Toast Notification */}
+      {iqamaToast && (
+        <aside aria-label="Prayer notifications" className="fixed top-16 right-4 z-50 bg-emerald-800 text-white p-4 rounded-2xl shadow-2xl border border-emerald-600 flex items-center gap-3 max-w-sm animate-bounce">
+          <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center shrink-0">
+            <Volume2 className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-300">
+              {iqamaToast.prayer} Iqama
+            </div>
+            <div className="text-xs text-white/90">
+              {iqamaToast.message}
+            </div>
+          </div>
+          <button 
+            onClick={() => setIqamaToast(null)}
+            className="p-1 rounded text-white/70 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </aside>
+      )}
 
       {/* Main View Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -173,33 +262,55 @@ export default function App() {
           onPlayKahfAudio={handlePlayKahfAudio}
         />
         
-        {activeTab === 'riwayah' && (
-          <RiwayahSelection
+        {/* 1. HOME DASHBOARD */}
+        {activeTab === 'home' && (
+          <HomeDashboard
             currentReciter={currentReciter}
-            currentSurahId={currentSurahId}
+            currentSurah={currentSurahMeta}
             isPlaying={isPlaying}
-            onSelectReciter={handleSelectReciter}
-            onSelectSurahAndPlay={(rec, sId) => {
-              setCurrentReciter(rec);
-              setCurrentSurahId(sId);
-              updateLastStopped(sId, 1, rec.id);
-              refreshProgress();
-              if (!isPlaying) {
-                setTimeout(() => togglePlay(), 100);
-              }
+            onTogglePlay={togglePlay}
+            onNavigate={(tab) => {
+              setActiveTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            onOpenReaderWithSurah={(rec, sId) => {
-              setCurrentReciter(rec);
-              setCurrentSurahId(sId);
-              updateLastStopped(sId, 1, rec.id);
-              refreshProgress();
-              setActiveTab('reader');
+            onOpenReciterSwitcher={() => setIsReciterSwitcherOpen(true)}
+            onOpenMushafAtPage={(page) => {
+              setActiveTab('mushaf');
             }}
-            onOpenTajweedWithReciter={handleOpenTajweedWithReciter}
-            initialSelectedRiwayahId={targetRiwayahId}
+            onResumeLastSurah={handleResumeLastStopped}
           />
         )}
 
+        {/* 2. QURAN READER (114 Surahs with Ayah playback, tafsir & translations) */}
+        {activeTab === 'reader' && (
+          <QuranReader
+            currentSurahId={currentSurahId}
+            onSelectSurah={handleSurahChange}
+            currentReciter={currentReciter}
+            onSelectReciter={handleSelectReciter}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            completedSurahIds={progress.completedSurahIds}
+            onProgressUpdate={refreshProgress}
+            onOpenTajweedTarget={handleOpenTajweedTarget}
+          />
+        )}
+
+        {/* 3. TRADITIONAL MUSHAF (604 Complete Pages with Facsimile & Digital Page modes) */}
+        {activeTab === 'mushaf' && (
+          <TraditionalMushafReader
+            initialPage={progress.lastStoppedPage || 1}
+            currentSurahId={currentSurahId}
+            onSelectSurah={handleSurahChange}
+            currentReciter={currentReciter}
+            onSelectReciter={handleSelectReciter}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            onSwitchToStudyView={() => setActiveTab('reader')}
+          />
+        )}
+
+        {/* 4. RECITERS DIRECTORY (Over 50 international, African & Nigerian masters) */}
         {activeTab === 'reciters' && (
           <RecitersDirectory
             currentReciter={currentReciter}
@@ -230,7 +341,50 @@ export default function App() {
           />
         )}
 
-        {/* eTilawa Feature: Haramain Imams Portal */}
+        {/* 5. 20 CANONICAL RIWAYAT */}
+        {activeTab === 'riwayah' && (
+          <RiwayahSelection
+            currentReciter={currentReciter}
+            currentSurahId={currentSurahId}
+            isPlaying={isPlaying}
+            onSelectReciter={handleSelectReciter}
+            onSelectSurahAndPlay={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              if (!isPlaying) {
+                setTimeout(() => togglePlay(), 100);
+              }
+            }}
+            onOpenReaderWithSurah={(rec, sId) => {
+              setCurrentReciter(rec);
+              setCurrentSurahId(sId);
+              updateLastStopped(sId, 1, rec.id);
+              refreshProgress();
+              setActiveTab('reader');
+            }}
+            onOpenTajweedWithReciter={handleOpenTajweedWithReciter}
+            initialSelectedRiwayahId={targetRiwayahId}
+          />
+        )}
+
+        {/* 6. ISLAMIC BOOK LIBRARY (Hadith, Adhkar, Aqidah, Seerah, Fiqh, Tajweed) */}
+        {activeTab === 'library' && (
+          <IslamicLibraryView />
+        )}
+
+        {/* 7. PRAYER TIMES */}
+        {activeTab === 'prayer_times' && (
+          <PrayerTimesView />
+        )}
+
+        {/* 8. QIBLA DIRECTION COMPASS */}
+        {activeTab === 'qibla' && (
+          <QiblaView />
+        )}
+
+        {/* 9. HARAMAIN IMAMS LIVE PORTAL */}
         {activeTab === 'haramain' && (
           <HaramainMushafsView
             currentReciter={currentReciter}
@@ -257,30 +411,12 @@ export default function App() {
           />
         )}
 
-        {/* eTilawa Feature: Audio Translations Portal */}
+        {/* 10. AUDIO TRANSLATIONS (12 World Languages) */}
         {activeTab === 'translations' && (
           <AudioTranslationsView />
         )}
 
-        {/* eTilawa Feature: Prayer Times & Qibla Direction */}
-        {activeTab === 'prayer_times' && (
-          <PrayerTimesView />
-        )}
-
-        {activeTab === 'reader' && (
-          <QuranReader
-            currentSurahId={currentSurahId}
-            onSelectSurah={handleSurahChange}
-            currentReciter={currentReciter}
-            onSelectReciter={handleSelectReciter}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            completedSurahIds={progress.completedSurahIds}
-            onProgressUpdate={refreshProgress}
-            onOpenTajweedTarget={handleOpenTajweedTarget}
-          />
-        )}
-
+        {/* 11. TAJWEED STUDIO (Practice, record and compare) */}
         {activeTab === 'tajweed' && (
           <TajweedStudio
             currentReciter={currentReciter}
@@ -290,6 +426,7 @@ export default function App() {
           />
         )}
 
+        {/* 12. PROGRESS TRACKER */}
         {activeTab === 'progress' && (
           <ProgressTracker
             progress={progress}
@@ -302,34 +439,88 @@ export default function App() {
           />
         )}
 
+        {/* 13. DAILY QURAN GOALS & STREAKS */}
+        {activeTab === 'goals' && (
+          <DailyQuranGoal
+            onNavigateToReader={() => setActiveTab('reader')}
+            onNavigateToTajweed={() => setActiveTab('tajweed')}
+            onGoalCompleted={refreshProgress}
+          />
+        )}
+
+        {/* 14. SETTINGS & AUTOMATIC IQAMA RECITER */}
+        {activeTab === 'settings' && (
+          <SettingsView
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
+            onClearProgress={refreshProgress}
+          />
+        )}
+
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 mt-12 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+      {/* Footer (Desktop & Tablet) */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 mt-12 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-arabic font-bold text-emerald-800 dark:text-emerald-400 text-sm">نور القرآن</span>
             <span>·</span>
             <span className="text-slate-700 dark:text-slate-300 font-medium">Nur Al-Quran</span>
             <span>—</span>
-            <span>eTilawa Edition · Haramain & World Translations</span>
+            <span>Mobile, Tablet & Desktop Edition</span>
           </div>
 
           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 flex-wrap justify-center">
-            <span>20 Riwayat</span>
+            <span>20 Canonical Riwayat</span>
             <span>·</span>
-            <span>Haramain Live 24/7</span>
+            <span>Traditional Mushaf (604 Pages)</span>
             <span>·</span>
-            <span>12 Audio Translations</span>
+            <span>Islamic Library (6 Sections)</span>
             <span>·</span>
-            <span>Prayer & Qibla</span>
+            <span>Auto Iqama</span>
             <span>·</span>
-            <span>Direct MP3 Export</span>
+            <span>Live Qibla Compass</span>
           </div>
         </div>
       </footer>
 
-      {/* Global Bottom Audio Player Bar */}
+      {/* Mobile Docked Compact Audio Player (Docked above bottom nav bar) */}
+      <MobileCompactAudioPlayer
+        currentReciter={currentReciter}
+        currentSurah={currentSurahMeta}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        playbackRate={playbackRate}
+        volume={volume}
+        isMuted={isMuted}
+        loopMode={loopMode}
+        isLoading={isLoading}
+        hasError={hasError}
+        onTogglePlay={togglePlay}
+        onSeek={seek}
+        onChangeRate={changePlaybackRate}
+        onChangeVolume={changeVolume}
+        onToggleMute={toggleMute}
+        onToggleLoop={setLoopMode}
+        onNext={nextSurah}
+        onPrev={prevSurah}
+        onOpenReader={() => {
+          setActiveTab('reader');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenMushaf={() => {
+          setActiveTab('mushaf');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenTajweed={() => {
+          setActiveTab('tajweed');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenReciterSwitcher={() => setIsReciterSwitcherOpen(true)}
+      />
+
+      {/* Desktop & Tablet Persistent Bottom Audio Player Bar */}
       <AudioPlayerBar
         currentReciter={currentReciter}
         currentSurah={currentSurahMeta}
@@ -350,8 +541,30 @@ export default function App() {
         onToggleLoop={setLoopMode}
         onNext={nextSurah}
         onPrev={prevSurah}
-        onOpenReader={() => setActiveTab('reader')}
-        onOpenTajweed={() => setActiveTab('tajweed')}
+        onOpenReader={() => {
+          setActiveTab('reader');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenMushaf={() => {
+          setActiveTab('mushaf');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenTajweed={() => {
+          setActiveTab('tajweed');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenReciterSwitcher={() => setIsReciterSwitcherOpen(true)}
+      />
+
+      {/* Seamless In-Page Reciter Switcher Drawer (Without leaving page or losing surah) */}
+      <ReciterSwitcherDrawer
+        isOpen={isReciterSwitcherOpen}
+        onClose={() => setIsReciterSwitcherOpen(false)}
+        currentReciter={currentReciter}
+        currentSurahId={currentSurahId}
+        onSelectReciter={(newReciter) => {
+          handleSelectReciter(newReciter, true);
+        }}
       />
 
       {/* Global Audio Health Diagnostics Modal */}

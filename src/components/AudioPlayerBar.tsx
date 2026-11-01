@@ -9,7 +9,9 @@ import {
   Volume2, 
   VolumeX, 
   Mic, 
-  BookOpen 
+  BookOpen,
+  Book,
+  Users
 } from 'lucide-react';
 import { Reciter, SurahMeta } from '../types/quran';
 import { isSurahAvailableForReciter } from '../data/reciters';
@@ -35,7 +37,9 @@ interface AudioPlayerBarProps {
   onNext: () => void;
   onPrev: () => void;
   onOpenReader: () => void;
+  onOpenMushaf?: () => void;
   onOpenTajweed: () => void;
+  onOpenReciterSwitcher?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -66,7 +70,9 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   onNext,
   onPrev,
   onOpenReader,
-  onOpenTajweed
+  onOpenMushaf,
+  onOpenTajweed,
+  onOpenReciterSwitcher
 }) => {
   const nextLoop = loopMode === 'surah' ? 'all' : (loopMode === 'all' ? 'off' : 'surah');
   const nextRate = playbackRate === 1 ? 1.25 : (playbackRate === 1.25 ? 0.75 : 1);
@@ -74,7 +80,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl">
+    <div className="hidden md:block fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl">
       
       {/* Tiny progress scrub line at top edge */}
       <div 
@@ -95,8 +101,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         
-        {/* Left: Reciter & Surah Info */}
-        <div className="flex items-center gap-3 min-w-0 max-w-[280px] sm:max-w-xs">
+        {/* Left: Reciter & Surah Info + Change Reciter Button */}
+        <div className="flex items-center gap-3 min-w-0 max-w-[320px] lg:max-w-sm">
           <button
             onClick={onOpenReader}
             className="w-9 h-9 rounded-lg bg-emerald-800 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0 font-arabic hover:bg-emerald-700 transition-colors"
@@ -120,6 +126,18 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               <span className="text-emerald-400">{currentReciter.style}</span>
             </div>
           </div>
+
+          {/* Dedicated Reciter Voice Switcher Trigger */}
+          {onOpenReciterSwitcher && (
+            <button
+              onClick={onOpenReciterSwitcher}
+              className="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-bold flex items-center gap-1 shrink-0 border border-slate-700 transition-colors"
+              title="Change Reciter Voice without leaving Surah"
+            >
+              <Users className="w-3 h-3" />
+              <span className="hidden xl:inline">Switch Reciter</span>
+            </button>
+          )}
         </div>
 
         {/* Center: Playback Controls */}
@@ -214,6 +232,18 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               <Repeat className={`w-4 h-4 ${loopMode === 'all' ? 'text-emerald-400' : 'text-slate-500'}`} />
             )}
           </button>
+
+          {/* View in Traditional Mushaf */}
+          {onOpenMushaf && (
+            <button
+              onClick={onOpenMushaf}
+              title="View in Traditional Mushaf"
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700"
+            >
+              <Book className="w-3.5 h-3.5 text-amber-300" />
+              <span>Mushaf</span>
+            </button>
+          )}
 
           {/* Practice in Tajweed Studio */}
           <button
