@@ -26,12 +26,13 @@ import {
   Radio,
   BookMarked,
   ShieldCheck,
-  Bookmark
+  Bookmark,
+  MapPin
 } from 'lucide-react';
 import { Reciter, SurahMeta } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
 import { RECITERS } from '../data/reciters';
-import { calculatePrayerTimes, WORLD_CITIES } from '../services/prayerTimes';
+import { calculatePrayerTimes, WORLD_CITIES, getHijriDateString } from '../services/prayerTimes';
 import { getStoredProgress, getDailyGoalStatus } from '../services/storage';
 import { AppTab } from './Navbar';
 
@@ -60,13 +61,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [dailyGoal, setDailyGoal] = useState(() => getDailyGoalStatus());
   const [copiedHadith, setCopiedHadith] = useState(false);
 
-  // Prayer times state for Makkah / default city
+  // Prayer times state
   const [prayerData, setPrayerData] = useState(() => {
-    const city = WORLD_CITIES[0]; // Makkah
+    const city = WORLD_CITIES[0]; // Makkah default
     return calculatePrayerTimes(new Date(), city.lat, city.lng, city.timezone, city.method);
   });
 
-  // Real-time countdown
   useEffect(() => {
     const timer = setInterval(() => {
       const city = WORLD_CITIES[0];
@@ -75,27 +75,26 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Update daily goal / progress on focus
   useEffect(() => {
     setProgress(getStoredProgress());
     setDailyGoal(getDailyGoalStatus());
   }, []);
 
   const lastSurah = getSurahById(progress.lastStoppedSurahId) || SURAHS[0];
-  const lastMushafPage = progress.lastStoppedPage || 1;
+  const lastMushafPage = progress.lastStoppedPage || lastSurah.pageStart || 1;
 
-  // Format today's date
   const todayFormatted = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
+    weekday: 'short',
     month: 'short',
-    day: 'numeric',
-    year: 'numeric'
+    day: 'numeric'
   }).format(new Date());
 
+  const hijriFormatted = getHijriDateString(new Date());
+
   const featuredAyah = {
-    arabic: 'إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ وَيُبَشِّرُ الْمُؤْمِنِينَ الَّذِينَ يَعْمَلُونَ الصَّالِحَاتِ أَنَّ لَهُمْ أَجْرًا كَبِيرًا',
-    english: 'Indeed, this Qur\'an guides to that which is most suitable and gives good tidings to the believers who work righteous deeds that they will have a great reward.',
-    hausa: 'Lalle ne wannan Alƙur\'ani yana shiryarwa ga hanyar da take mafi daidaita, kuma yana bayar da bushara ga muminai waɗanda suke aikata ayyukan ƙwarai cewa suna da sakamako mai girma.',
+    arabic: 'إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ وَيُبَشِّرُ الْمُؤْمِنِينَ',
+    english: 'Indeed, this Qur\'an guides to that which is most upright and gives good tidings to the believers.',
+    hausa: 'Lallai wannan Alƙur\'ani yana shiryarwa ga hanyar da take mafi daidaita.',
     surah: 'Surah Al-Isra (17:9)'
   };
 
@@ -107,570 +106,509 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   };
 
   const handleCopyHadith = () => {
-    const text = `${featuredHadith.arabic}\n\n"${featuredHadith.english}"\n\nHausa: "${featuredHadith.hausa}"\n\n— ${featuredHadith.source}`;
+    const text = `${featuredHadith.arabic}\n\n"${featuredHadith.english}"\n\n— ${featuredHadith.source}`;
     navigator.clipboard.writeText(text);
     setCopiedHadith(true);
-    setTimeout(() => setCopiedHadith(false), 2500);
+    setTimeout(() => setCopiedHadith(false), 2000);
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+    <div className="space-y-4 sm:space-y-6 animate-fadeIn pb-4">
       
-      {/* 1. Header Greeting & Date Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-800 via-emerald-900 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-700/50">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-700/80 text-emerald-200 border border-emerald-500/30 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {todayFormatted}
-              </span>
-              <span className="text-xs text-emerald-200/80">·</span>
-              <span className="text-xs text-amber-300 font-arabic font-medium">
-                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-              </span>
+      {/* 1. Sleek Compact Header & Next Prayer Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white p-4 sm:p-5 shadow-md border border-emerald-700/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          
+          {/* Left: Greeting, Date, Hijri */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[11px] text-emerald-200/90 font-medium mb-1">
+              <span>{todayFormatted}</span>
+              <span>·</span>
+              <span className="text-amber-300 font-arabic">{hijriFormatted}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-2">
-              Assalamu Alaikum
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <span>Assalamu Alaikum</span>
+              <span className="text-xs font-normal text-emerald-200">· Nur Al-Quran</span>
             </h1>
-            <p className="text-sm sm:text-base text-emerald-100/90 max-w-xl font-normal leading-relaxed">
-              Welcome to <span className="font-semibold text-amber-300">Nur Al-Quran</span>. Listen to 20 canonical Riwayat, immerse in the traditional Mushaf, discover verified reciters, and delve into classical Islamic books.
+
+            <p className="text-xs text-emerald-100/80 truncate max-w-md hidden sm:block mt-0.5">
+              20 Canonical Riwayat, Traditional 604-page Mushaf & authentic Islamic library.
             </p>
           </div>
 
-          {/* Next Prayer Countdown Card */}
-          <div className="shrink-0 bg-white/10 backdrop-blur-md rounded-xl p-4 sm:p-5 border border-white/15 min-w-[240px] flex flex-col justify-between shadow-lg">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-200 uppercase tracking-wider">
-                <Clock className="w-4 h-4 text-amber-300" />
-                <span>Next Prayer ({prayerData.nextPrayer.name})</span>
+          {/* Right: Next Prayer Countdown Badge */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/15 shrink-0">
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Next: {prayerData.nextPrayer.name}</span>
+                <span className="font-arabic text-[11px]">({prayerData.nextPrayer.arabicName})</span>
               </div>
-              <span className="font-arabic text-amber-300 text-sm font-bold">
-                {prayerData.nextPrayer.arabicName}
-              </span>
-            </div>
-
-            <div className="flex items-baseline justify-between mb-3">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+              <div className="text-base sm:text-lg font-black tracking-tight text-white font-mono leading-none mt-0.5">
                 {prayerData.nextPrayer.time}
-              </span>
-              <span className="text-xs text-emerald-200 font-mono">
-                in {Math.floor(prayerData.nextPrayer.remainingMinutes / 60)}h {prayerData.nextPrayer.remainingMinutes % 60}m {prayerData.nextPrayer.remainingSeconds}s
-              </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 pl-2 border-l border-white/15">
               <button
                 onClick={() => onNavigate('prayer_times')}
-                className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold text-center transition-colors shadow-sm"
+                className="py-1 px-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-colors shadow-sm"
               >
-                Prayer Times
+                Prayers
               </button>
               <button
                 onClick={() => onNavigate('qibla')}
-                className="py-1.5 px-3 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
-                title="Qibla Direction"
+                className="p-1 px-2 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-colors"
+                title="Qibla Compass"
               >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Qibla</span>
+                <Compass className="w-3 h-3 text-amber-300" />
+                <span className="hidden xs:inline">Qibla</span>
               </button>
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* 2. Primary 4 Continue / Fast-Action Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2. Fast-Action Quick Continue Cards (2 cols mobile, 4 cols desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         
-        {/* Card A: Continue Quran Audio */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 1: Resume Quran */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-3 sm:p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-emerald-500 transition-colors">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                <BookOpen className="w-4 h-4" />
-                <span>Continue Recitation</span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                Surah #{lastSurah.id}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                <span>Quran</span>
+              </span>
+              <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                #{lastSurah.id}
               </span>
             </div>
-            
-            <h3 className="text-base font-bold text-slate-900 dark:text-white truncate mb-1">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
               {lastSurah.nameEnglish}
             </h3>
-            <p className="font-arabic text-sm text-slate-500 dark:text-slate-400 truncate mb-3">
+            <p className="font-arabic text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {lastSurah.nameArabic} · {lastSurah.versesCount} Ayahs
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
             <button
               onClick={onResumeLastSurah}
-              className="flex-1 py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              className="flex-1 py-1 px-2 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Resume Audio</span>
+              <Play className="w-3 h-3 fill-current" />
+              <span>Resume</span>
             </button>
             <button
               onClick={() => onNavigate('reader')}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
-              title="Open in Reader"
+              className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 text-xs"
+              title="Open Reader"
             >
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        {/* Card B: Traditional Mushaf Jump */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 2: Traditional Mushaf */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-3 sm:p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-amber-500 transition-colors">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
-                <Book className="w-4 h-4" />
-                <span>Traditional Mushaf</span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
-                Page {lastMushafPage} / 604
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <Book className="w-3 h-3" />
+                <span>Mushaf</span>
+              </span>
+              <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono">
+                p.{lastMushafPage}/604
               </span>
             </div>
-            
-            <h3 className="text-base font-bold text-slate-900 dark:text-white truncate mb-1">
-              Madinah Page Spread
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+              Madinah Mushaf
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Authentic complete facsimile pages, high-res calligraphy & digital modes.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              Full facsimile pages
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={() => onNavigate('mushaf')}
-              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              className="w-full py-1 px-2 rounded bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
             >
-              <Book className="w-3.5 h-3.5" />
-              <span>Open Mushaf Page {lastMushafPage}</span>
+              <Book className="w-3 h-3" />
+              <span>Page {lastMushafPage}</span>
             </button>
           </div>
         </div>
 
-        {/* Card C: Active Reciter & Voice Switcher */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 3: Active Reciter */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-3 sm:p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-blue-500 transition-colors">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-400">
-                <Volume2 className="w-4 h-4" />
-                <span>Active Reciter</span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
-                {currentReciter.countryCode === 'NG' ? '🇳🇬 Nigeria' : currentReciter.country}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                <Volume2 className="w-3 h-3" />
+                <span>Voice</span>
+              </span>
+              <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                {currentReciter.countryCode === 'NG' ? '🇳🇬 NG' : currentReciter.countryCode}
               </span>
             </div>
-            
-            <h3 className="text-base font-bold text-slate-900 dark:text-white truncate mb-1">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
               {currentReciter.name}
             </h3>
-            <p className="font-arabic text-xs text-slate-500 dark:text-slate-400 truncate mb-3">
-              {currentReciter.arabicName || currentReciter.style} · {currentReciter.style}
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              {currentReciter.style}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={onOpenReciterSwitcher}
-              className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              className="w-full py-1 px-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Change Reciter Voice</span>
+              <Users className="w-3 h-3" />
+              <span>Switch Voice</span>
             </button>
           </div>
         </div>
 
-        {/* Card D: Daily Quran Goal */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 4: Daily Quran Goal */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-3 sm:p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-orange-500 transition-colors">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-rose-700 dark:text-rose-400">
-                <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-                <span>Daily Quran Goal</span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 flex items-center gap-1">
-                <Flame className="w-3 h-3 fill-current" />
-                {dailyGoal.streakDays} Day Streak
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1">
+                <Flame className="w-3 h-3 fill-orange-500" />
+                <span>Goal</span>
+              </span>
+              <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300">
+                {dailyGoal.streakDays}d Streak
               </span>
             </div>
-            
-            <h3 className="text-base font-bold text-slate-900 dark:text-white truncate mb-1">
-              {dailyGoal.completed ? 'Goal Completed!' : `${Math.round(dailyGoal.percentage)}% Completed Today`}
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+              {dailyGoal.completed ? 'Completed Today!' : `${Math.round(dailyGoal.percentage)}% Done`}
             </h3>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mb-3 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
               <div 
-                className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-orange-500 to-amber-500 h-1.5 rounded-full" 
                 style={{ width: `${Math.min(100, dailyGoal.percentage)}%` }}
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={() => onNavigate('goals')}
-              className="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              className="w-full py-1 px-2 rounded bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>View Daily Goals & Badges</span>
+              <CheckCircle2 className="w-3 h-3" />
+              <span>View Badges</span>
             </button>
           </div>
         </div>
 
       </div>
 
-      {/* 3. Featured Ayah of Guidance */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Ayah of Divine Light
-            </h2>
-          </div>
-          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+      {/* 3. Compact Ayah of Divine Guidance */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Ayah of the Day
+          </span>
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
             {featuredAyah.surah}
           </span>
         </div>
 
-        <p className="font-arabic text-xl sm:text-2xl text-center leading-loose text-slate-900 dark:text-slate-100 my-4 px-2" dir="rtl">
+        <p className="font-arabic text-base sm:text-lg text-right leading-relaxed text-slate-900 dark:text-slate-100 my-1" dir="rtl">
           {featuredAyah.arabic}
         </p>
 
-        <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-          <p><span className="font-semibold text-slate-900 dark:text-white">English: </span>{featuredAyah.english}</p>
-          <p><span className="font-semibold text-emerald-700 dark:text-emerald-400">Hausa: </span>{featuredAyah.hausa}</p>
-        </div>
+        <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 font-normal line-clamp-2">
+          <span className="font-semibold text-slate-800 dark:text-slate-200">Meaning: </span>
+          "{featuredAyah.english}"
+        </p>
       </div>
 
-      {/* 4. Complete App Destination Hub (Clean Responsive Grid) */}
+      {/* 4. Complete App Destination Hub (Compact High-Density Grid) */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Explore All Features & Destinations
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Dedicated, responsive tools engineered for seamless Quran study on phone, tablet, and desktop
-            </p>
-          </div>
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            All Dedicated Tools & Portals
+          </h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5">
           
-          {/* Tile 1: Quran Reader */}
+          {/* Quran Reader */}
           <button
             onClick={() => onNavigate('reader')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <BookOpen className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <BookOpen className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600">
                 Quran Reader
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                114 Surahs with ayah-by-ayah audio, English & Hausa translations, Tafsir & bookmarks.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">114 Surahs & Tafsir</div>
             </div>
           </button>
 
-          {/* Tile 2: Traditional Mushaf */}
+          {/* Traditional Mushaf */}
           <button
             onClick={() => onNavigate('mushaf')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Book className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Book className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                Traditional Mushaf
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                604 complete pages, authentic Madinah facsimile, double-page tablet & desktop layout.
-              </p>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-600">
+                Mushaf (604)
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Facsimile Spread</div>
             </div>
           </button>
 
-          {/* Tile 3: Reciters Directory */}
+          {/* Reciters Directory */}
           <button
             onClick={() => onNavigate('reciters')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Users className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Users className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600">
                 Reciters Directory
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Over 50 verified international, African & Nigerian masters with verified recordings.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">50+ Masters & NG</div>
             </div>
           </button>
 
-          {/* Tile 4: 20 Canonical Riwayat */}
+          {/* 20 Riwayat */}
           <button
             onClick={() => onNavigate('riwayah')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Layers className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Layers className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600">
                 20 Riwayat
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Explore Hafs, Warsh, Qalun, Ad-Duri and all 20 canonical recitation chains.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Hafs, Warsh & all</div>
             </div>
           </button>
 
-          {/* Tile 5: Islamic Library */}
+          {/* Islamic Library */}
           <button
             onClick={() => onNavigate('library')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <BookMarked className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <BookMarked className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-purple-600">
                 Islamic Library
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                6 categories: Hadith, Adhkar, Aqidah, Seerah, Fiqh & Tajweed with interactive counters.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">60+ Classical Books</div>
             </div>
           </button>
 
-          {/* Tile 6: Prayer Times */}
+          {/* Prayer Times */}
           <button
             onClick={() => onNavigate('prayer_times')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Clock className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0">
+              <Clock className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600">
                 Prayer Times
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Astronomical times for cities worldwide, GPS location support, and Iqama reminders.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Worldwide & 36 States</div>
             </div>
           </button>
 
-          {/* Tile 7: Qibla Direction */}
+          {/* Qibla Direction */}
           <button
             onClick={() => onNavigate('qibla')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Compass className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Compass className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                Qibla Direction
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Live rotating compass needle, real Kaaba distance, and phone sensor alignment.
-              </p>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600">
+                Qibla Compass
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Rotating sensor</div>
             </div>
           </button>
 
-          {/* Tile 8: Haramain Live 24/7 */}
+          {/* Haramain Live */}
           <button
             onClick={() => onNavigate('haramain')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-600">
                 Haramain Live
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Makkah & Madinah live broadcasts, Taraweeh recordings & historical recordings.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Makkah & Madinah</div>
             </div>
           </button>
 
-          {/* Tile 9: Audio Translations */}
+          {/* Audio Translations */}
           <button
             onClick={() => onNavigate('translations')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Languages className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <Languages className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                Audio Translations
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                12 world languages: Hausa, Yoruba, English, French, Urdu, Somali, Turkish & more.
-              </p>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600">
+                Translations
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Hausa, Yoruba & 12</div>
             </div>
           </button>
 
-          {/* Tile 10: Tajweed Studio */}
+          {/* Tajweed Studio */}
           <button
             onClick={() => onNavigate('tajweed')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Mic className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Mic className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-600">
                 Tajweed Studio
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Listen, repeat, and record your voice to compare your recitation with master reciters.
-              </p>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Voice recorder</div>
             </div>
           </button>
 
-          {/* Tile 11: Progress Tracker */}
+          {/* Daily Goals */}
           <button
-            onClick={() => onNavigate('progress')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            onClick={() => onNavigate('goals')}
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <Flame className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                Progress Tracker
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Khatm completion gauge, memorization milestones, and recitation history logs.
-              </p>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-rose-600">
+                Daily Goals
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Streaks & Badges</div>
             </div>
           </button>
 
-          {/* Tile 12: Settings & Iqama */}
+          {/* Settings & Adhan */}
           <button
             onClick={() => onNavigate('settings')}
-            className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-500 dark:hover:border-slate-500 hover:shadow-md transition-all text-left flex flex-col justify-between group"
+            className="p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-500 text-left flex items-center gap-2.5 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <Settings className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+              <Settings className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                Settings & Iqama
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                Configure automatic Iqama recitation, prayer permissions, themes, and audio defaults.
-              </p>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-slate-700 dark:group-hover:text-slate-200">
+                Settings & Adhan
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">Adhan, Iqama & theme</div>
             </div>
           </button>
 
         </div>
       </div>
 
-      {/* 5. Featured Hadith & Daily Adhkar Shortcut Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 5. Compact Hadith & Hisnul Muslim Shortcut */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         
-        {/* Hadith of the Day */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        {/* Hadith */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4" />
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
                 Hadith of the Day
               </span>
               <button
                 onClick={handleCopyHadith}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 title="Copy Hadith"
               >
-                {copiedHadith ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                {copiedHadith ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
 
-            <p className="font-arabic text-lg sm:text-xl text-right leading-relaxed text-slate-900 dark:text-white mb-3" dir="rtl">
+            <p className="font-arabic text-sm sm:text-base text-right leading-relaxed text-slate-900 dark:text-white" dir="rtl">
               {featuredHadith.arabic}
             </p>
 
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mb-2 font-medium">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 font-normal">
               "{featuredHadith.english}"
-            </p>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400">Hausa: </span>
-              "{featuredHadith.hausa}"
             </p>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-            <span className="text-slate-400 font-mono">{featuredHadith.source}</span>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 mt-2 text-[11px]">
+            <span className="text-slate-400 font-mono text-[10px]">{featuredHadith.source}</span>
             <button
               onClick={() => onNavigate('library')}
-              className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline flex items-center gap-1"
+              className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-0.5"
             >
-              <span>Explore Sahih Al-Bukhari</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <span>Library</span>
+              <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        {/* Daily Adhkar Shortcut Card */}
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 rounded-2xl p-5 sm:p-6 border border-emerald-200 dark:border-emerald-800/60 shadow-sm flex flex-col justify-between">
+        {/* Hisnul Muslim Daily Adhkar */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-xl p-3.5 sm:p-4 border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                Fortress of the Muslim (Hisnul Muslim)
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
+                Hisnul Muslim
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200/70 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-200/70 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
                 Daily Adhkar
               </span>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
               Morning & Evening Remembrances
             </h3>
 
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-              Recite authentic invocations with interactive repetition counters, full Arabic texts, English explanations, and Hausa translations.
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+              Authentic fortress supplications with interactive repetition counters and Hausa meanings.
             </p>
-
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div className="p-2.5 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-800 text-center">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Morning Adhkar</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">أذكار الصباح</span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-800 text-center">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Evening Adhkar</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">أذكار المساء</span>
-              </div>
-            </div>
           </div>
 
-          <button
-            onClick={() => onNavigate('library')}
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
-          >
-            <BookMarked className="w-4 h-4" />
-            <span>Open Adhkar in Islamic Library</span>
-          </button>
+          <div className="pt-2 border-t border-emerald-100 dark:border-emerald-800/60 mt-2">
+            <button
+              onClick={() => onNavigate('library')}
+              className="w-full py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            >
+              <BookMarked className="w-3.5 h-3.5" />
+              <span>Open Hisnul Muslim Adhkar</span>
+            </button>
+          </div>
         </div>
 
       </div>

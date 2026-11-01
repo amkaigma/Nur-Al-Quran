@@ -35,8 +35,12 @@ import {
   searchBooks, 
   getBookById 
 } from '../data/islamicLibrary';
+import { HisnulMuslimExperience } from './HisnulMuslimExperience';
 
 export const IslamicLibraryView: React.FC = () => {
+  // Primary mode: 'library' | 'hisnul_muslim'
+  const [libraryMode, setLibraryMode] = useState<'library' | 'hisnul_muslim'>('library');
+
   // Navigation states: 'home' (categories overview) | 'category' (all books in category) | 'book' (book details & reader)
   const [activeView, setActiveView] = useState<'home' | 'category' | 'book'>('home');
   const [selectedCategoryId, setSelectedCategoryId] = useState<LibraryCategory['id']>('hadith');
@@ -156,6 +160,11 @@ export const IslamicLibraryView: React.FC = () => {
   };
 
   const openBook = (bookId: string) => {
+    if (bookId === 'hisnul-muslim') {
+      setLibraryMode('hisnul_muslim');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setSelectedBookId(bookId);
     setActiveView('book');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -178,9 +187,46 @@ export const IslamicLibraryView: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       
-      {/* ── View 1: Library Home (Categories Overview & Favorites) ── */}
-      {activeView === 'home' && (
-        <div className="space-y-8 animate-fade-in">
+      {/* Primary Experience Mode Selector */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setLibraryMode('library')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+              libraryMode === 'library'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-850'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Complete Library (60 Collections)</span>
+          </button>
+
+          <button
+            onClick={() => setLibraryMode('hisnul_muslim')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+              libraryMode === 'hisnul_muslim'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-850'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-amber-300" />
+            <span>Hisnul Muslim Experience (10 Sections)</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-3 hidden sm:block">
+          {libraryMode === 'hisnul_muslim' ? 'حصن المسلم · 10 Sections with Repetition Counters' : 'Hadith, Adhkar, Aqidah, Seerah, Fiqh & Quran Studies'}
+        </div>
+      </div>
+
+      {libraryMode === 'hisnul_muslim' ? (
+        <HisnulMuslimExperience />
+      ) : (
+        <>
+          {/* ── View 1: Library Home (Categories Overview & Favorites) ── */}
+          {activeView === 'home' && (
+            <div className="space-y-8 animate-fade-in">
           
           {/* Header Banner */}
           <div className="bg-gradient-to-br from-emerald-800 via-emerald-900 to-slate-950 text-white rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden border border-emerald-700/40">
@@ -283,6 +329,37 @@ export const IslamicLibraryView: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Featured: Dedicated Hisnul Muslim Experience Spotlight Banner */}
+              <div 
+                onClick={() => setLibraryMode('hisnul_muslim')}
+                className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 hover:from-emerald-700 hover:to-teal-700 text-white p-4 sm:p-5 rounded-3xl border border-emerald-600/40 shadow-sm cursor-pointer transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-amber-300 border border-emerald-500/30">
+                        DAILY FORTRESS
+                      </span>
+                      <span className="text-xs text-emerald-200">10 Organized Sections · Counters</span>
+                    </div>
+                    <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-amber-200 transition-colors">
+                      Hisnul Muslim (Fortress of the Muslim)
+                    </h3>
+                    <p className="text-xs text-emerald-100/80 line-clamp-1">
+                      Morning & evening Adhkar, post-prayer adhkar, and protection with Arabic, transliteration, English, Hausa meanings, and interactive tap counters.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-end sm:self-center bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
+                  <span>Open 10 Sections</span>
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
               {/* ── Section: The 6 Dedicated Categories ── */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -731,6 +808,8 @@ export const IslamicLibraryView: React.FC = () => {
           </div>
 
         </div>
+      )}
+        </>
       )}
 
     </div>

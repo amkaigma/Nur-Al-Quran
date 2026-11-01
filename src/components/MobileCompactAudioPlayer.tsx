@@ -44,6 +44,7 @@ interface MobileCompactAudioPlayerProps {
   onOpenMushaf?: () => void;
   onOpenTajweed: () => void;
   onOpenReciterSwitcher: () => void;
+  activeAyahNumber?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -76,7 +77,8 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
   onOpenReader,
   onOpenMushaf,
   onOpenTajweed,
-  onOpenReciterSwitcher
+  onOpenReciterSwitcher,
+  activeAyahNumber
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
@@ -88,7 +90,7 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
   return (
     <>
       {/* 1. Compact Docked Bar (Visible on mobile screens, hidden on md+) */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 bg-slate-900/98 backdrop-blur-md border-t border-slate-800 text-white shadow-2xl transition-all">
+      <div className="md:hidden fixed bottom-14 left-0 right-0 z-40 bg-slate-900/98 backdrop-blur-md border-t border-slate-800 text-white shadow-2xl transition-all">
         
         {/* Scrubber progress line at the very top */}
         <div 
@@ -105,14 +107,14 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
           />
         </div>
 
-        <div className="px-3.5 py-2 flex items-center justify-between gap-2.5">
+        <div className="px-3 py-1.5 flex items-center justify-between gap-2">
           
           {/* Left: Surah badge & Name (taps to expand full audio sheet) */}
           <div 
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+            className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-800 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0 font-arabic border border-emerald-700/60 shadow-sm">
+            <div className="w-7 h-7 rounded-md bg-emerald-800 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0 font-arabic border border-emerald-700/60 shadow-xs">
               {currentSurah.id}
             </div>
 
@@ -121,11 +123,16 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
                 <span className="text-xs font-bold text-white truncate">
                   {currentSurah.nameEnglish}
                 </span>
+                {activeAyahNumber && isPlaying && (
+                  <span className="text-[9px] font-bold px-1 rounded bg-emerald-800 text-emerald-200 border border-emerald-600/60 shrink-0">
+                    v.{activeAyahNumber}
+                  </span>
+                )}
                 <span className="font-arabic text-xs text-amber-300 truncate">
                   {currentSurah.nameArabic}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+              <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
                 <span className="truncate">
                   {currentReciter.countryCode === 'NG' ? `🇳🇬 ${currentReciter.name}` : currentReciter.name}
                 </span>

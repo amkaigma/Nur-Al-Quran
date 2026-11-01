@@ -20,6 +20,7 @@ import { fetchSurahVerses } from '../services/quranApi';
 import { markSurahCompleted, updateLastStopped } from '../services/storage';
 import { getSurahAudioUrl } from '../data/reciters';
 import { TraditionalMushafReader } from './TraditionalMushafReader';
+import { QuranSyncSettings } from '../services/quranSyncService';
 
 interface QuranReaderProps {
   currentSurahId: number;
@@ -31,6 +32,11 @@ interface QuranReaderProps {
   completedSurahIds: number[];
   onProgressUpdate: () => void;
   onOpenTajweedTarget: (surahId: number, ayahNumber: number) => void;
+  activeAyahNumber?: number;
+  activeMushafPage?: number;
+  syncSettings?: QuranSyncSettings;
+  onUpdateSyncSettings?: (settings: Partial<QuranSyncSettings>) => void;
+  onSeekToAyah?: (ayahNumber: number) => void;
 }
 
 export const QuranReader: React.FC<QuranReaderProps> = ({
@@ -42,7 +48,12 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   onTogglePlay,
   completedSurahIds,
   onProgressUpdate,
-  onOpenTajweedTarget
+  onOpenTajweedTarget,
+  activeAyahNumber,
+  activeMushafPage,
+  syncSettings,
+  onUpdateSyncSettings,
+  onSeekToAyah
 }) => {
   const [readerMode, setReaderMode] = useState<'mushaf_pages' | 'verse_list'>('mushaf_pages');
   const [surahSearch, setSurahSearch] = useState('');
@@ -232,6 +243,11 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
           isPlaying={isPlaying}
           onTogglePlay={onTogglePlay}
           onSwitchToStudyView={() => setReaderMode('verse_list')}
+          activeAyahNumber={activeAyahNumber}
+          activeMushafPage={activeMushafPage}
+          syncSettings={syncSettings}
+          onUpdateSyncSettings={onUpdateSyncSettings}
+          onSeekToAyah={onSeekToAyah}
         />
       ) : (
         /* ── Mode 2: Detailed Verse-by-Verse List & Study Layout ── */
@@ -540,18 +556,33 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {ayahs.map((ayah) => (
-              <div
-                key={ayah.numberInSurah}
-                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-4"
-              >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-emerald-100/70 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-semibold flex items-center justify-center text-xs tabular-nums">
-                      {ayah.numberInSurah}
-                    </span>
-                    <span>Ayah {ayah.numberInSurah}</span>
-                  </div>
+            {ayahs.map((ayah) => {
+              const isCurrentlyReciting = isPlaying && activeAyahNumber === ayah.numberInSurah;
+              return (
+                <div
+                  key={ayah.numberInSurah}
+                  className={`rounded-xl border p-4 sm:p-5 shadow-xs transition-all space-y-3 ${
+                    isCurrentlyReciting
+                      ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 ring-2 ring-amber-400/30 shadow-md'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-6 h-6 rounded-full font-bold flex items-center justify-center text-xs tabular-nums ${
+                        isCurrentlyReciting
+                          ? 'bg-amber-500 text-amber-950'
+                          : 'bg-emerald-100/70 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300'
+                      }`}>
+                        {ayah.numberInSurah}
+                      </span>
+                      <span className="font-semibold">Ayah {ayah.numberInSurah}</span>
+                      {isCurrentlyReciting && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500 text-amber-950 animate-pulse">
+                          Reciting Now
+                        </span>
+                      )}
+                    </div>
 
                   <button
                     onClick={() => onOpenTajweedTarget(currentSurahId, ayah.numberInSurah)}
@@ -587,8 +618,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
         )}
 
         {/* Surah Pagination / Navigation */}

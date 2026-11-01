@@ -60,7 +60,7 @@ export const LIBRARY_CATEGORIES: LibraryCategory[] = [
     arabicTitle: 'الأذكار والأدعية اليومية',
     description: 'Authentic prophetic supplications for morning, evening, prayer, protection, and daily life.',
     iconName: 'HeartHandshake',
-    bookCount: 12
+    bookCount: 15
   },
   {
     id: 'knowledge',
@@ -76,7 +76,7 @@ export const LIBRARY_CATEGORIES: LibraryCategory[] = [
     arabicTitle: 'السيرة النبوية والتاريخ',
     description: 'The blessed biography of the Messenger ﷺ, stories of the Prophets, and the Rightly Guided Caliphs.',
     iconName: 'Milestone',
-    bookCount: 6
+    bookCount: 7
   },
   {
     id: 'fiqh',
@@ -84,7 +84,7 @@ export const LIBRARY_CATEGORIES: LibraryCategory[] = [
     arabicTitle: 'الفقه والعبادات',
     description: 'Practical guides to Taharah (purification), Salah, Zakah, Sawm (fasting), and Islamic rulings.',
     iconName: 'ShieldCheck',
-    bookCount: 8
+    bookCount: 9
   },
   {
     id: 'quran_studies',
@@ -92,7 +92,7 @@ export const LIBRARY_CATEGORIES: LibraryCategory[] = [
     arabicTitle: 'علوم القرآن والتجويد',
     description: 'Tafsir, Tajweed rules, memorization methodologies, Asbab an-Nuzul, and Qira’at science.',
     iconName: 'BookOpen',
-    bookCount: 7
+    bookCount: 8
   }
 ];
 
@@ -869,6 +869,118 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
       }
     ]
   },
+  {
+    id: 'rabbana-duas',
+    slug: 'forty-rabbana-quranic-duas',
+    title: 'Al-Arba’un ar-Rabbaniyyah (40 Rabbana Quranic Duas)',
+    arabicTitle: 'الأربعون دعاءً ربنا من القرآن الكريم',
+    author: 'Direct Divine Revelation from the Holy Quran',
+    authorBio: 'The forty miraculous supplications in the Holy Quran commencing with the divine invocation "Rabbana" (Our Lord).',
+    category: 'adhkar',
+    categoryLabel: 'Daily Adhkar & Duas',
+    description: 'A sublime collection of the 40 Quranic prayers invoked by Prophets, messengers, and righteous believers across human history, addressing repentance, guidance, righteous offspring, patience, and Paradise.',
+    whatItTeaches: 'How to supplicate to Allah using His own revealed words with supreme humility and highest eloquence.',
+    importance: 'Considered the most comprehensive and powerful supplications as they are literal divine revelations.',
+    keyLessons: [
+      'Supplication for steadfastness: Rabbana la tuzigh qulubana ba\'da idh hadaytana.',
+      'Supplication for parental mercy: Rabbir-hamhuma kama rabbayani saghira.',
+      'Supplication for righteous families: Rabbana hab lana min azwajina wa dhurriyyatina qurrata a\'yun.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Directly from the text of the Holy Quran with Mutawatir transmission.',
+    hadithCount: 40,
+    samplePassages: [
+      {
+        id: 'rab-1',
+        title: 'Supplication for Steadfastness of the Heart',
+        arabicText: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً ۚ إِنَّكَ أَنتَ الْوَهَّابُ',
+        transliteration: 'Rabbana la tuzigh qulubana ba\'da idh hadaytana wa hab lana mil-ladunka rahmah, innaka Antal-Wahhab.',
+        englishTranslation: 'Our Lord, let not our hearts deviate after You have guided us and grant us from Yourself mercy. Indeed, You are the Bestower.',
+        hausaTranslation: 'Ya Ubangijinmu, kada Ka karkatar da zukatanmu bayan Ka shiryar da mu, kuma Ka ba mu rahama daga wurinKa, hakika Kai ne Mai yawan kyauta.',
+        reference: 'Surah Ali ‘Imran (3:8)',
+        targetCount: 1
+      },
+      {
+        id: 'rab-2',
+        title: 'Supplication for Righteous Spouses & Offspring',
+        arabicText: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا',
+        transliteration: 'Rabbana hab lana min azwajina wa dhurriyyatina qurrata a\'yuniw-waj\'alna lil-muttaqina imama.',
+        englishTranslation: 'Our Lord, grant us from among our wives and offspring comfort to our eyes and make us an example for the righteous.',
+        hausaTranslation: 'Ya Ubangijinmu, Ka ba mu sanyin idanu daga matanmu da zuri\'armu, kuma Ka sanya mu shugabanni ga masu takawa.',
+        reference: 'Surah Al-Furqan (25:74)',
+        targetCount: 1
+      }
+    ]
+  },
+  {
+    id: 'anxiety-relief-duas',
+    slug: 'duas-for-anxiety-and-relief',
+    title: 'Ad’iyat al-Karb wal-Hazan (Duas for Anxiety, Grief & Solace)',
+    arabicTitle: 'أدعية تفريج الكرب والهم والحزن وقضاء الدين',
+    author: 'Prophetic Guidance & Sunnah Compilations',
+    authorBio: 'Prescriptions taught by the Prophet ﷺ to the Companions when overwhelmed by distress, sorrow, depression, or heavy debts.',
+    category: 'adhkar',
+    categoryLabel: 'Daily Adhkar & Duas',
+    description: 'A focused spiritual pharmacy of authentic supplications designed to lift psychological burden, dispel darkness from the heart, and bring tranquil contentment.',
+    whatItTeaches: 'Complete surrender of one\'s anxieties to the Planner of all affairs, acknowledging human helplessness and divine omnipotence.',
+    importance: 'Crucial daily therapy for spiritual, emotional, and psychological peace.',
+    keyLessons: [
+      'Seeking refuge from anxiety, grief, laziness, and cowardice.',
+      'The prayer of Prophet Yunus (peace be upon him) in the three darknesses.',
+      'Prayer for settlement of debts: Allahummak-fini bi-halalika \'an haramik.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Sahih al-Bukhari, Sahih Muslim, and Jami’ at-Tirmidhi.',
+    hadithCount: 14,
+    samplePassages: [
+      {
+        id: 'anx-1',
+        title: 'Supplication for Removal of Heavy Debt',
+        arabicText: 'اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ',
+        transliteration: 'Allahummak-fini bi-halalika \'an haramik, wa aghnini bi-fadlika \'amman siwak.',
+        englishTranslation: 'O Allah, suffice me with Your lawful against Your prohibited, and make me independent of all besides You by Your bounty.',
+        hausaTranslation: 'Ya Allah, Ka isar mini da halalinKa daga haramunKa, kuma Ka wadatar da ni da falalarKa daga waninKa.',
+        reference: 'Jami\' at-Tirmidhi (3563) - Hasan Sahih',
+        targetCount: 1
+      }
+    ]
+  },
+  {
+    id: 'istighfar-repentance',
+    slug: 'duas-for-forgiveness-and-repentance',
+    title: 'Kanz al-Istighfar (Treasury of Forgiveness & Tawbah)',
+    arabicTitle: 'كنز الاستغفار والتوبة وسيد الاستغفار',
+    author: 'Prophetic Traditions on Repentance',
+    authorBio: 'Authentic formulas of seeking pardon transmitted from the Prophet ﷺ, who sought forgiveness more than 70 to 100 times daily.',
+    category: 'adhkar',
+    categoryLabel: 'Daily Adhkar & Duas',
+    description: 'The definitive collection of Istighfar formulas including Sayyid al-Istighfar, prayers in Sujud, and prayers after lapses, illuminating the path back to Allah’s mercy.',
+    whatItTeaches: 'How sincere repentance purifies the heart, opens the doors of sustenance (Rizq), brings rain, and admits the servant into Paradise.',
+    importance: 'The perpetual cleansing tool for every believer in daily life.',
+    keyLessons: [
+      'Sayyid al-Istighfar promises Paradise for whoever recites it with certainty.',
+      'Repentance requires remorse, cessation of sin, and firm resolve not to return.',
+      'Forgiveness is guaranteed by Allah to whoever turns back to Him.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Sahih al-Bukhari, Muslim, and the Four Sunan.',
+    hadithCount: 15,
+    samplePassages: [
+      {
+        id: 'ist-1',
+        title: 'Sayyid al-Istighfar (The Chief of Forgiveness Prayers)',
+        arabicText: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
+        transliteration: 'Allahumma Anta Rabbi la ilaha illa Anta, khalaqtani wa ana \'abduka, wa ana \'ala \'ahdika wa wa\'dika mastata\'tu, a\'udhu bika min sharri ma sana\'tu, abu\'u laka bi-ni\'matika \'alayya, wa abu\'u laka bi-dhanbi faghfir li, fa-innahu la yaghfirudh-dhunuba illa Ant.',
+        englishTranslation: 'O Allah, You are my Lord, none has the right to be worshipped except You. You created me and I am Your slave, and I abide by Your covenant and promise as best I can. I seek refuge in You from the evil of what I have done. I acknowledge before You Your favors upon me, and I confess my sins to You. So forgive me, for none forgives sins except You.',
+        hausaTranslation: 'Ya Allah, Kai ne Ubangijina, babu abin bautawa da gaskiya sai Kai. Ka halicce ni kuma ni bawanKa ne, kuma ina kan alkawarinKa da wa\'adinKa gwargwadon ikona...',
+        reference: 'Sahih al-Bukhari (6306)',
+        targetCount: 1
+      }
+    ]
+  },
 
   // ========================================================
   // CATEGORY C: ISLAMIC KNOWLEDGE & AQIDAH (9 Works)
@@ -1270,9 +1382,40 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
       }
     ]
   },
+  {
+    id: 'great-scholars',
+    slug: 'biographies-of-great-imams-and-scholars',
+    title: 'A’immat al-Huda (Biographies of the Great Imams & Scholars)',
+    arabicTitle: 'أئمة الهدى ومصابيح الدجى: سير الأئمة الأربعة وكبار العلماء',
+    author: 'Historical Biographies of Islamic Luminaries',
+    authorBio: 'Chronicles of Abu Hanifah, Malik ibn Anas, Muhammad ibn Idris ash-Shafi’i, Ahmad ibn Hanbal, and the towering scholars of the Sunnah.',
+    category: 'seerah',
+    categoryLabel: 'Seerah & Islamic History',
+    description: 'An inspirational exposition of the lives, piety, steadfastness under severe trials (Mihnah), devotion, and unmatched legacy of the greatest jurists and scholars of Islam.',
+    whatItTeaches: 'How scholarship requires deep God-consciousness, intellectual integrity, humility, and willingness to sacrifice for truth.',
+    importance: 'Illuminates the human exemplars who codified and preserved Islamic jurisprudence across epochs.',
+    keyLessons: [
+      'Imam Malik’s veneration of the Hadith in Madinah.',
+      'Imam Ahmad’s unshakeable stance on the Quran during the Mihnah.',
+      'Mutual respect and fraternity among scholars across differing legal schools.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Documented in Siyar A’lam an-Nubala (Adh-Dhahabi) and Hilyat al-Awliya (Abu Nu’aym).',
+    samplePassages: [
+      {
+        id: 'gs-1',
+        title: 'Imam Malik’s Reverence for Prophetic Speech',
+        arabicText: 'كَانَ الإِمَامُ مَالِكٌ إِذَا أَرَادَ أَنْ يُحَدِّثَ تَوَضَّأَ وَلَبِسَ أَحْسَنَ ثِيَابِهِ وَتَطَيَّبَ إِجْلاَلاً لِحَدِيثِ رَسُولِ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ.',
+        englishTranslation: 'When Imam Malik wished to narrate Hadith, he would perform ablution, put on his finest clothes, and apply perfume out of deep veneration for the speech of the Messenger of Allah ﷺ.',
+        hausaTranslation: 'Imam Malik idan yana son ya bayar da hadisi, sai ya yi alwala, ya sanya mafi kyawun tufafinsa, ya shafa turare domin girmama hadisin Manzon Allah (SAW).',
+        reference: 'Siyar A’lam an-Nubala (8/67)'
+      }
+    ]
+  },
 
   // ========================================================
-  // CATEGORY E: FIQH & WORSHIP (8 Works)
+  // CATEGORY E: FIQH & WORSHIP (9 Works)
   // ========================================================
   {
     id: 'fiqh-sunnah',
@@ -1483,9 +1626,41 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
       }
     ]
   },
+  {
+    id: 'ahkam-janaiz',
+    slug: 'ahkam-al-janaiz-rulings-of-funerals',
+    title: 'Ahkam al-Jana’iz wa Bida’uha (Rulings of Funerals & Bereavement)',
+    arabicTitle: 'أحكام الجنائز وبدعها للعلامة الألباني',
+    author: 'Shaykh Muhammad Nasiruddin al-Albani (1333–1420 AH)',
+    authorBio: 'Eminent Hadith scholar and Muhaddith of the 20th century who rigorously researched, graded, and verified prophetic funeral traditions.',
+    category: 'fiqh',
+    categoryLabel: 'Fiqh & Worship (Ibadah)',
+    description: 'The master reference detailing the legal rulings from the moment of terminal illness, washing (Ghusl), shrouding (Kafan), funeral prayer (Salat al-Janazah), burial, condolence, and visiting cemeteries strictly according to the authentic Sunnah.',
+    whatItTeaches: 'How to conduct Islamic funerals with solemn dignity, prayer for the deceased, patience (Sabr), and complete abandonment of un-Islamic innovations.',
+    importance: 'The universally relied-upon modern manual on Janazah jurisprudence across Islamic universities.',
+    keyLessons: [
+      'The four Takbirs of Salat al-Janazah and the authentic duas for the deceased.',
+      'Promptness in burial and settling debts of the deceased.',
+      'Prohibition of wailing (Niyahah) and the virtue of patient acceptance.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Every single ruling is directly cited with authenticated Hadith sources from Bukhari, Muslim, and the Four Sunan.',
+    samplePassages: [
+      {
+        id: 'aj-1',
+        title: 'The Great Prophetic Dua for the Deceased in Funeral Prayer',
+        arabicText: 'اللَّهُمَّ اغْفِرْ لَهُ وَارْحَمْهُ، وَعَافِهِ وَاعْفُ عَنْهُ، وَأَكْرِمْ نُزُلَهُ، وَوَسِّعْ مُدْخَلَهُ، وَاغْسِلْهُ بِالْمَاءِ وَالثَّلْجِ وَالْبَرَدِ، وَنَقِّهِ مِنَ الْخَطَايَا كَمَا نَقَّيْتَ الثَّوْبَ الأَبْيَضَ مِنَ الدَّنَسِ',
+        transliteration: 'Allahummagh-fir lahu war-hamhu, wa \'afihi wa\'fu \'anhu, wa akrim nuzulahu, wa wassi\' mudkhalahu, wagh-silhu bil-ma\'i wath-thalji wal-barad, wa naqqihi minal-khataya kama naqqaytath-thawbal-abyada minad-danas.',
+        englishTranslation: 'O Allah, forgive him and have mercy upon him, excuse him and pardon him, make his welcome honorable, expand his entry, wash him with water, snow, and hail, and purify him of sins as a white garment is purified of dirt.',
+        hausaTranslation: 'Ya Allah, Ka gafarta masa kuma Ka yi masa rahama, Ka ba shi lafiya kuma Ka yafe masa, Ka girmama saukarsa, Ka yalwata makwancinsa, Ka wanke shi da ruwa da kankara da sanyi, Ka tsarkake shi daga kurakurai kamar yadda ake tsarkake farar tufafi daga dauda.',
+        reference: 'Sahih Muslim (963)'
+      }
+    ]
+  },
 
   // ========================================================
-  // CATEGORY F: QURANIC STUDIES & TAJWEED (7 Works)
+  // CATEGORY F: QURANIC STUDIES & TAJWEED (8 Works)
   // ========================================================
   {
     id: 'muqaddimah-jazariyyah',
@@ -1671,6 +1846,38 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
         arabicText: 'التَّكْرَارُ يُثَبِّتُ الْمَحْفُوظَ فِي الْقَلْبِ، وَمَنْ لاَ يُرَاجِعُ يَنْسَى كَمَا تَنْفَلِتُ الإِبِلُ فِي عُقُلِهَا.',
         englishTranslation: 'Repetition cements the memorized text in the heart; whoever does not review will forget, just as a camel slips away from its rope.',
         reference: 'Kayfa Tahfadh al-Qur’an'
+      }
+    ]
+  },
+  {
+    id: 'tibyan-nawawi',
+    slug: 'al-tibyan-fi-adab-hamalat-al-quran',
+    title: 'Al-Tibyan fi Adab Hamalat al-Qur’an (Etiquette of Quran Carriers)',
+    arabicTitle: 'التبيان في آداب حملة القرآن للإمام النووي',
+    author: 'Imam Yahya ibn Sharaf an-Nawawi (631–676 AH)',
+    authorBio: 'The illustrious Syrian scholar, ascetic, and author of Riyad as-Salihin, Sahih Muslim commentary, and Al-Arba’in an-Nawawiyyah.',
+    category: 'quran_studies',
+    categoryLabel: 'Quranic Studies & Tajweed',
+    description: 'The classical masterwork dedicated to the spiritual etiquette, moral conduct, sincerity, nightly recitation, and reverent behavior expected of teachers, memorizers, and students of the Holy Quran.',
+    whatItTeaches: 'How Quranic memorization must transform the inner character, humility, speech, and night vigilance of the believer.',
+    importance: 'The fundamental guide taught to students of Tahfiz al-Quran throughout the Muslim world for over seven centuries.',
+    keyLessons: [
+      'Pure intention (Ikhlas) as the sole acceptable motive for reading and teaching the Quran.',
+      'Manners of holding the Mushaf and physical cleanliness during recitation.',
+      'Weeping with reflection and contemplation (Tadabbur) upon hearing divine verses.'
+    ],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English', 'Hausa'],
+    authenticityInfo: 'Universally revered classical manual cited continuously by classical and contemporary scholars.',
+    chaptersCount: 10,
+    samplePassages: [
+      {
+        id: 'tb-1',
+        title: 'The Noble Character Required of a Quran Memorizer',
+        arabicText: 'يَنْبَغِي لِحَامِلِ الْقُرْآنِ أَنْ يَكُونَ مُمَيَّزًا بِأَخْلاَقِهِ، لَيِّنَ الْجَانِبِ، كَثِيرَ التَّوَاضُعِ، بَعِيدًا عَنِ الْكِبْرِ وَالْفَخْرِ، رَفِيقًا بِالْمُتَعَلِّمِينَ.',
+        englishTranslation: 'The carrier of the Quran ought to be distinguished by noble character, gentle manner, abundant humility, far removed from pride and boastfulness, and kind towards students.',
+        hausaTranslation: 'Ya kamata mai haddar Alkur\'ani ya zama mai banbanci da dabi\'unsa na kwarai, mai sassauci, mai yawan tawali\'u, mai nisa da girman kai da alfahari, mai tausayi ga masu koyo.',
+        reference: 'Al-Tibyan fi Adab Hamalat al-Qur’an, Chapter 4'
       }
     ]
   }

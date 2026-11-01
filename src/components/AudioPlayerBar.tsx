@@ -40,6 +40,7 @@ interface AudioPlayerBarProps {
   onOpenMushaf?: () => void;
   onOpenTajweed: () => void;
   onOpenReciterSwitcher?: () => void;
+  activeAyahNumber?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -72,7 +73,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   onOpenReader,
   onOpenMushaf,
   onOpenTajweed,
-  onOpenReciterSwitcher
+  onOpenReciterSwitcher,
+  activeAyahNumber
 }) => {
   const nextLoop = loopMode === 'surah' ? 'all' : (loopMode === 'all' ? 'off' : 'surah');
   const nextRate = playbackRate === 1 ? 1.25 : (playbackRate === 1.25 ? 0.75 : 1);
@@ -112,10 +114,15 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
           </button>
           
           <div className="truncate min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-white truncate">
                 {currentSurah.nameEnglish}
               </span>
+              {activeAyahNumber && isPlaying && (
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-800/80 text-emerald-200 border border-emerald-600/50">
+                  v.{activeAyahNumber}
+                </span>
+              )}
               <span className="font-arabic text-xs text-amber-300 truncate hidden sm:inline">
                 {currentSurah.nameArabic}
               </span>

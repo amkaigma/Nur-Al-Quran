@@ -30,7 +30,8 @@ import { SURAHS, getSurahById } from './data/surahs';
 import { getStoredProgress, updateLastStopped } from './services/storage';
 import { useQuranAudio } from './hooks/useQuranAudio';
 import { checkAndTriggerIqama, getIqamaSettings } from './services/iqamaService';
-import { calculatePrayerTimes, WORLD_CITIES } from './services/prayerTimes';
+import { checkAndTriggerAdhan, getAdhanSettings } from './services/adhanService';
+import { calculatePrayerTimes, WORLD_CITIES, NIGERIAN_STATES } from './services/prayerTimes';
 import { Bell, Volume2, X } from 'lucide-react';
 
 export default function App() {
@@ -40,8 +41,9 @@ export default function App() {
   const [isAudioHealthOpen, setIsAudioHealthOpen] = useState<boolean>(false);
   const [isReciterSwitcherOpen, setIsReciterSwitcherOpen] = useState<boolean>(false);
   
-  // Notification toast for automatic Iqama
+  // Notification toast for automatic Iqama and Adhan
   const [iqamaToast, setIqamaToast] = useState<{ prayer: string; message: string } | null>(null);
+  const [adhanToast, setAdhanToast] = useState<{ prayer: string; message: string } | null>(null);
 
   // Dark mode theme preference persistence
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -92,7 +94,7 @@ export default function App() {
     refreshProgress();
   }, [currentReciter.id, refreshProgress]);
 
-  // Quran Audio Player Hook
+  // Quran Audio Player Hook with Live Recitation & Mushaf Synchronization
   const {
     isPlaying,
     currentTime,
@@ -110,7 +112,12 @@ export default function App() {
     toggleMute,
     setLoopMode,
     nextSurah,
-    prevSurah
+    prevSurah,
+    activeAyahNumber,
+    activeMushafPage,
+    syncSettings,
+    updateSyncSettings,
+    seekToAyah
   } = useQuranAudio({
     currentReciter,
     currentSurahId,
@@ -164,18 +171,14 @@ export default function App() {
     }
   };
 
-  // Background Automatic Iqama Monitor
+  // Background Automatic Adhan & Iqama Monitor
   useEffect(() => {
-    const checkIqama = () => {
-      const settings = getIqamaSettings();
-      if (!settings.enabled) return;
-
+    const checkPrayerEvents = () => {
       const now = new Date();
-      // Calculate times for user's city or Makkah default
-      const city = WORLD_CITIES[0];
-      const prayerTimes = calculatePrayerTimes(now, city.lat, city.lng, city.timezone, city.method);
+      // Default to Abuja / FCT or user's chosen location
+      const defaultCity = NIGERIAN_STATES.find(s => s.id === 'ng_fct') || WORLD_CITIES[0];
+      const prayerTimes = calculatePrayerTimes(now, defaultCity.lat, defaultCity.lng, defaultCity.timezone, defaultCity.method);
 
-      // Array of prayers with their military time strings
       const prayers: Array<{ key: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; time: string; name: string }> = [
         { key: 'fajr', time: prayerTimes.fajr, name: 'Fajr' },
         { key: 'dhuhr', time: prayerTimes.dhuhr, name: 'Dhuhr' },
@@ -184,34 +187,56 @@ export default function App() {
         { key: 'isha', time: prayerTimes.isha, name: 'Isha' },
       ];
 
-      for (const p of prayers) {
-        if (!settings.selectedPrayers[p.key]) continue;
+      // 1. Check Adhan (entry of prayer)
+      const adhanSettings = getAdhanSettings();
+      if (adhanSettings.enabled) {
+        for (const p of prayers) {
+          if (!adhanSettings.enabledPrayers[p.key]) continue;
+          const [hours, minutes] = p.time.split(':').map(Number);
+          const adhanDate = new Date();
+          adhanDate.setHours(hours, minutes, 0, 0);
 
-        // Parse time: "05:14"
-        const [hours, minutes] = p.time.split(':').map(Number);
-        const prayerDate = new Date();
-        prayerDate.setHours(hours, minutes, 0, 0);
-
-        // Add delay minutes (e.g. 10 minutes for Iqama)
-        const iqamaTime = new Date(prayerDate.getTime() + settings.delayMinutes * 60000);
-
-        // Check if within 45 seconds of iqama time
-        const diffMs = Math.abs(now.getTime() - iqamaTime.getTime());
-        if (diffMs < 45000) {
-          const triggered = checkAndTriggerIqama(p.key, p.time, (name) => {
-            setIqamaToast({
-              prayer: name.toUpperCase(),
-              message: `Automatic Iqama recitation commenced for ${name}. Qad qamatis-Salah.`
+          const diffMs = Math.abs(now.getTime() - adhanDate.getTime());
+          if (diffMs < 45000) {
+            const triggered = checkAndTriggerAdhan(p.key, p.time, defaultCity.name, (name) => {
+              setAdhanToast({
+                prayer: name.toUpperCase(),
+                message: `Allahu Akbar! Adhan for ${name} prayer is now calling. Hayya 'alas-Salah.`
+              });
+              setTimeout(() => setAdhanToast(null), 14000);
             });
-            setTimeout(() => setIqamaToast(null), 10000);
-          });
-          if (triggered) break;
+            if (triggered) break;
+          }
+        }
+      }
+
+      // 2. Check Iqama (congregation announcement)
+      const iqamaSettings = getIqamaSettings();
+      if (iqamaSettings.enabled) {
+        for (const p of prayers) {
+          if (!iqamaSettings.selectedPrayers[p.key]) continue;
+          const [hours, minutes] = p.time.split(':').map(Number);
+          const prayerDate = new Date();
+          prayerDate.setHours(hours, minutes, 0, 0);
+
+          const iqamaTime = new Date(prayerDate.getTime() + iqamaSettings.delayMinutes * 60000);
+          const diffMs = Math.abs(now.getTime() - iqamaTime.getTime());
+          if (diffMs < 45000) {
+            const triggered = checkAndTriggerIqama(p.key, p.time, (name) => {
+              setIqamaToast({
+                prayer: name.toUpperCase(),
+                message: `Automatic Iqama recitation commenced for ${name}. Qad qamatis-Salah.`
+              });
+              setTimeout(() => setIqamaToast(null), 10000);
+            });
+            if (triggered) break;
+          }
         }
       }
     };
 
     // Run every 30 seconds
-    const interval = setInterval(checkIqama, 30000);
+    const interval = setInterval(checkPrayerEvents, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -231,7 +256,7 @@ export default function App() {
 
       {/* Iqama Toast Notification */}
       {iqamaToast && (
-        <aside aria-label="Prayer notifications" className="fixed top-16 right-4 z-50 bg-emerald-800 text-white p-4 rounded-2xl shadow-2xl border border-emerald-600 flex items-center gap-3 max-w-sm animate-bounce">
+        <aside aria-label="Iqama notifications" className="fixed top-16 right-4 z-50 bg-emerald-800 text-white p-4 rounded-2xl shadow-2xl border border-emerald-600 flex items-center gap-3 max-w-sm animate-bounce">
           <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center shrink-0">
             <Volume2 className="w-5 h-5" />
           </div>
@@ -246,6 +271,29 @@ export default function App() {
           <button 
             onClick={() => setIqamaToast(null)}
             className="p-1 rounded text-white/70 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </aside>
+      )}
+
+      {/* Adhan Toast Notification */}
+      {adhanToast && (
+        <aside aria-label="Adhan notifications" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3.5 max-w-md animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+            <Bell className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-300">
+              {adhanToast.prayer} Adhan Calling
+            </div>
+            <div className="text-xs text-white/90">
+              {adhanToast.message}
+            </div>
+          </div>
+          <button 
+            onClick={() => setAdhanToast(null)}
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-emerald-800"
           >
             <X className="w-4 h-4" />
           </button>
@@ -293,6 +341,11 @@ export default function App() {
             completedSurahIds={progress.completedSurahIds}
             onProgressUpdate={refreshProgress}
             onOpenTajweedTarget={handleOpenTajweedTarget}
+            activeAyahNumber={activeAyahNumber}
+            activeMushafPage={activeMushafPage}
+            syncSettings={syncSettings}
+            onUpdateSyncSettings={updateSyncSettings}
+            onSeekToAyah={seekToAyah}
           />
         )}
 
@@ -307,6 +360,11 @@ export default function App() {
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
             onSwitchToStudyView={() => setActiveTab('reader')}
+            activeAyahNumber={activeAyahNumber}
+            activeMushafPage={activeMushafPage}
+            syncSettings={syncSettings}
+            onUpdateSyncSettings={updateSyncSettings}
+            onSeekToAyah={seekToAyah}
           />
         )}
 
@@ -518,6 +576,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenReciterSwitcher={() => setIsReciterSwitcherOpen(true)}
+        activeAyahNumber={activeAyahNumber}
       />
 
       {/* Desktop & Tablet Persistent Bottom Audio Player Bar */}
@@ -554,6 +613,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenReciterSwitcher={() => setIsReciterSwitcherOpen(true)}
+        activeAyahNumber={activeAyahNumber}
       />
 
       {/* Seamless In-Page Reciter Switcher Drawer (Without leaving page or losing surah) */}

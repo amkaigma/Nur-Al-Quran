@@ -2,6 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Reciter } from '../types/quran';
 import { getSurahAudioUrl, getSurahAudioFallbacks, isSurahAvailableForReciter } from '../data/reciters';
 import { updateLastStopped } from '../services/storage';
+import { getSurahById } from '../data/surahs';
+import { 
+  getCurrentlyRecitingAyah, 
+  preloadVerseTimings, 
+  getSyncSettings, 
+  saveSyncSettings, 
+  QuranSyncSettings 
+} from '../services/quranSyncService';
 
 export interface UseQuranAudioProps {
   currentReciter: Reciter;
@@ -21,6 +29,20 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
   const [isUnavailable, setIsUnavailable] = useState<boolean>(false);
+  const [syncSettings, setSyncSettings] = useState<QuranSyncSettings>(() => getSyncSettings());
+
+  const updateSyncSettings = useCallback((updates: Partial<QuranSyncSettings>) => {
+    setSyncSettings(prev => {
+      const next = { ...prev, ...updates };
+      saveSyncSettings(next);
+      return next;
+    });
+  }, []);
+
+  // Preload verse timings when surah or reciter changes
+  useEffect(() => {
+    preloadVerseTimings(currentReciter.id, currentSurahId);
+  }, [currentReciter.id, currentSurahId]);
 
   // Fallback mirrors tracking
   const fallbacksRef = useRef<string[]>([]);
@@ -246,6 +268,16 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     onSurahChange(prev);
   }, [currentSurahId, onSurahChange]);
 
+  // Dynamic verse and page synchronization
+  const activeSync = getCurrentlyRecitingAyah(currentSurahId, currentTime, duration);
+
+  const seekToAyah = useCallback((ayahNumber: number) => {
+    const surah = getSurahById(currentSurahId);
+    if (!surah || duration <= 0) return;
+    const fraction = Math.max(0, Math.min(1, (ayahNumber - 1) / surah.versesCount));
+    seek(fraction * duration);
+  }, [currentSurahId, duration, seek]);
+
   return {
     isPlaying,
     currentTime,
@@ -265,6 +297,11 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     setLoopMode,
     nextSurah,
     prevSurah,
-    audioUrl: getSurahAudioUrl(currentReciter, currentSurahId)
+    audioUrl: getSurahAudioUrl(currentReciter, currentSurahId),
+    activeAyahNumber: activeSync.ayahNumber,
+    activeMushafPage: activeSync.pageNumber,
+    syncSettings,
+    updateSyncSettings,
+    seekToAyah
   };
 }
