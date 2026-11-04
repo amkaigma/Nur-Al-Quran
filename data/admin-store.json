@@ -1,0 +1,314 @@
+{
+  "users": [
+    {
+      "id": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "passwordHash": "b03687e1efb5914c3284615e3d05dce07f984fb5699586ca36846b023b1635a0",
+      "name": "Super Administrator",
+      "role": "super_admin",
+      "status": "active",
+      "createdAt": "2026-11-04T18:28:20.822Z",
+      "lastActiveAt": "2026-11-04T19:00:51.609Z",
+      "readingSessionsCount": 42,
+      "listeningSessionsCount": 38,
+      "tajweedSessionsCount": 15,
+      "librarySessionsCount": 22
+    },
+    {
+      "id": "usr_kano_scholar",
+      "email": "ahmad.kano@nuralquran.org",
+      "passwordHash": "64d7fe2f8044aa4b1c04ee5daf9fa351467b3ab3d8934af89e31f60818f48096",
+      "name": "Ustaz Ahmad Kano",
+      "role": "admin",
+      "status": "active",
+      "createdAt": "2026-10-21T18:28:20.823Z",
+      "lastActiveAt": "2026-11-04T16:28:20.823Z",
+      "readingSessionsCount": 124,
+      "listeningSessionsCount": 88,
+      "tajweedSessionsCount": 45,
+      "librarySessionsCount": 67
+    },
+    {
+      "id": "usr_lagos_reciter",
+      "email": "ibrahim.lagos@nuralquran.org",
+      "passwordHash": "06d1f7a59766b7329b5d6a5443175e4749549e408cf40033522d6357b3963dd4",
+      "name": "Ibrahim Al-Fulaney",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-10-28T18:28:20.823Z",
+      "lastActiveAt": "2026-11-04T12:28:20.823Z",
+      "readingSessionsCount": 56,
+      "listeningSessionsCount": 92,
+      "tajweedSessionsCount": 28,
+      "librarySessionsCount": 19
+    }
+  ],
+  "activeSessions": {
+    "566051c6f68c3076a18fea09caa599e78cbb7cf1247e0b64f63ae79e6854ab28": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793824142055
+    },
+    "f96f9e225093fc0ce5a5a10d865147616ad1aa8de2d208dcfebce6cef42e8026": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793824153756
+    },
+    "a124e26e1d0d060b5b1dc6fbd1de93002e02e38f2390b9f26fbced5761172f03": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793824163571
+    },
+    "25670c65ebdf19effea81205bde2ebcc5facc30db1123184cf77939a7c42b025": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825699277
+    },
+    "682349b2c6fcaf7a8e48027115dc924964a3ec8aedb321657e771a64bea7c3f9": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825711109
+    },
+    "10e7be8227e1764c4b0965963ffe7ba2e2cd2279ab0432f73533492686777db5": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825715776
+    },
+    "cf6d82f7c31e0ed3ea2992c31f353c2dd5b67fc4cc2163c69bcc5c76aaefec8a": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825728754
+    },
+    "01659bb11ed5adf7e3d8edf4051978312ac40e6e8499992b1e7cae780c0e86a3": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825976700
+    },
+    "c53121afb33a108fe97fb3e24e4629a8c099a6cfb28787548a0751379d2041f2": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793825987961
+    },
+    "639a9209564f68519cdeacf5154b2da468e4bf99306157f8ef776783bde6490d": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1793826051609
+    }
+  },
+  "onlinePresences": {
+    "anon_127_0_0_1": {
+      "lastPing": 1793816957058,
+      "activity": "general"
+    },
+    "client_ueuul7vq": {
+      "lastPing": 1793818502390,
+      "activity": "general"
+    }
+  },
+  "errors": [
+    {
+      "id": "err_audio_timeout_example",
+      "feature": "Reciter Streams",
+      "severity": "warning",
+      "message": "Audio CDN response latency exceeded 3000ms for high-bitrate stream",
+      "technicalDetails": "Network timeout during initial audio buffer load; resolved on automated retry mirror.",
+      "occurrences": 3,
+      "firstSeen": "2026-11-02T18:28:20.823Z",
+      "lastSeen": "2026-11-04T17:28:20.823Z",
+      "status": "resolved",
+      "internalNotes": "Mirror fallback resolved latency spikes."
+    }
+  ],
+  "feedback": [
+    {
+      "id": "fb_1793816959840_blys",
+      "userEmail": "user@example.com",
+      "category": "audio",
+      "title": "Test audio feedback",
+      "description": "Testing feedback dispatch",
+      "priority": "normal",
+      "status": "pending",
+      "createdAt": "2026-11-04T18:29:19.840Z"
+    },
+    {
+      "id": "fb_welcome_report",
+      "userEmail": "abdalkaigama@gmail.com",
+      "category": "reciter",
+      "title": "Nigerian Muezzins and Reciters Verified",
+      "description": "Abuja National Mosque and Kano Central Mosque Adhan audio feeds verified and connected.",
+      "priority": "high",
+      "status": "resolved",
+      "createdAt": "2026-11-03T18:28:20.823Z",
+      "adminReply": "Verified and active across the 36 states."
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann_launch",
+      "title": "Nur Al-Quran 2026 Master Upgrade Live",
+      "message": "Welcome to the complete Worldwide Muezzin Directory, Advanced Tajweed Studio, and 604-page Traditional Mushaf.",
+      "type": "success",
+      "active": true,
+      "startDate": "2026-11-04T18:28:20.823Z",
+      "createdAt": "2026-11-04T18:28:20.823Z"
+    }
+  ],
+  "featureFlags": {
+    "quran_reader": true,
+    "traditional_mushaf": true,
+    "reciters_directory": true,
+    "riwayat": true,
+    "adhan": true,
+    "prayer_times": true,
+    "qibla": true,
+    "islamic_library": true,
+    "tajweed_studio": true,
+    "audio_translations": true,
+    "daily_goals": true
+  },
+  "auditLogs": [
+    {
+      "id": "audit_1793818851610_5eq5y",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T19:00:51.610Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818787961_5p6yo",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:59:47.961Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818776673_cr0pb",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:59:36.673Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818528754_zkjlm",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:55:28.754Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818515763_etnc0",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:55:15.763Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818511097_kfql5",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:55:11.097Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818499264_5ysgo",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:54:59.264Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793818487991_7zlza",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_FAILED",
+      "entity": "Auth",
+      "details": "Invalid credentials attempt",
+      "timestamp": "2026-11-04T18:54:47.991Z",
+      "result": "failure"
+    },
+    {
+      "id": "audit_1793816963571_g1vz9",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:29:23.571Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793816953743_kx6k2",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:29:13.743Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1793816949781_otjsd",
+      "adminEmail": "attacker@example.com",
+      "action": "LOGIN_FAILED",
+      "entity": "Auth",
+      "details": "Invalid credentials attempt",
+      "timestamp": "2026-11-04T18:29:09.781Z",
+      "result": "failure"
+    },
+    {
+      "id": "audit_1793816945922_iyzcd",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_FAILED",
+      "entity": "Auth",
+      "details": "Invalid credentials attempt",
+      "timestamp": "2026-11-04T18:29:05.922Z",
+      "result": "failure"
+    },
+    {
+      "id": "audit_1793816942055_3te1m",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-04T18:29:02.055Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_init",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SYSTEM_INITIALIZATION",
+      "entity": "System Core",
+      "details": "Super Admin Dashboard and server-side authentication activated.",
+      "timestamp": "2026-11-04T18:28:20.823Z",
+      "result": "success"
+    }
+  ],
+  "reciterDisabledMap": {},
+  "sessionMetrics": {
+    "totalQuranReading": 1280,
+    "totalQuranListening": 2450,
+    "totalTajweedPractice": 640,
+    "totalIslamicLibrary": 890
+  }
+}

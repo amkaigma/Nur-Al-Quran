@@ -24,6 +24,10 @@ import { MobileCompactAudioPlayer } from './components/MobileCompactAudioPlayer'
 import { ReciterSwitcherDrawer } from './components/ReciterSwitcherDrawer';
 import { FridayKahfBanner } from './components/FridayKahfBanner';
 import { AudioHealthCheckerModal } from './components/AudioHealthCheckerModal';
+import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
+import { WorldwideAdhanVoices } from './components/WorldwideAdhanVoices';
+import { UserFeedbackModal } from './components/UserFeedbackModal';
+import { emitClientPresence } from './services/adminService';
 import { Reciter, SurahMeta } from './types/quran';
 import { RECITERS, getReciterById } from './data/reciters';
 import { SURAHS, getSurahById } from './data/surahs';
@@ -32,7 +36,7 @@ import { useQuranAudio } from './hooks/useQuranAudio';
 import { checkAndTriggerIqama, getIqamaSettings } from './services/iqamaService';
 import { checkAndTriggerAdhan, getAdhanSettings } from './services/adhanService';
 import { calculatePrayerTimes, WORLD_CITIES, NIGERIAN_STATES } from './services/prayerTimes';
-import { Bell, Volume2, X } from 'lucide-react';
+import { Bell, Volume2, X, ShieldCheck, MessageSquare } from 'lucide-react';
 
 export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
@@ -40,6 +44,33 @@ export default function App() {
   const [targetRiwayahId, setTargetRiwayahId] = useState<string | null>(null);
   const [isAudioHealthOpen, setIsAudioHealthOpen] = useState<boolean>(false);
   const [isReciterSwitcherOpen, setIsReciterSwitcherOpen] = useState<boolean>(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState<boolean>(false);
+  
+  // Super Admin Route detection (/admin)
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  });
+
+  // Keep admin route in sync with browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsAdminRoute(window.location.pathname.startsWith('/admin'));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleOpenAdmin = useCallback(() => {
+    window.history.pushState({}, '', '/admin');
+    setIsAdminRoute(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleExitAdmin = useCallback(() => {
+    window.history.pushState({}, '', '/');
+    setIsAdminRoute(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   
   // Notification toast for automatic Iqama and Adhan
   const [iqamaToast, setIqamaToast] = useState<{ prayer: string; message: string } | null>(null);
@@ -240,6 +271,36 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Live Client Presence & Session Heartbeat (Feeds live DAU/online count to Super Admin)
+  useEffect(() => {
+    const sendHeartbeat = () => {
+      let mode: 'reading' | 'listening' | 'tajweed' | 'library' | 'general' = 'general';
+      if (isPlaying) {
+        mode = 'listening';
+      } else if (activeTab === 'reader' || activeTab === 'mushaf') {
+        mode = 'reading';
+      } else if (activeTab === 'tajweed') {
+        mode = 'tajweed';
+      } else if (activeTab === 'library') {
+        mode = 'library';
+      }
+      emitClientPresence(mode);
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab, isPlaying]);
+
+  // Private Super Admin Dashboard View (/admin)
+  if (isAdminRoute) {
+    return (
+      <div className={isDarkMode ? 'dark' : ''}>
+        <SuperAdminDashboard onExitAdmin={handleExitAdmin} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans pb-36 md:pb-28 transition-colors duration-200">
       
@@ -252,6 +313,8 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
         onOpenAudioHealth={() => setIsAudioHealthOpen(true)}
+        onOpenAdmin={handleOpenAdmin}
+        onOpenReportIssue={() => setIsFeedbackModalOpen(true)}
       />
 
       {/* Iqama Toast Notification */}
@@ -437,6 +500,11 @@ export default function App() {
           <PrayerTimesView />
         )}
 
+        {/* 7B. WORLDWIDE AUTHENTIC ADHAN VOICES */}
+        {activeTab === 'adhan_voices' && (
+          <WorldwideAdhanVoices />
+        )}
+
         {/* 8. QIBLA DIRECTION COMPASS */}
         {activeTab === 'qibla' && (
           <QiblaView />
@@ -535,9 +603,20 @@ export default function App() {
             <span>·</span>
             <span>Islamic Library (6 Sections)</span>
             <span>·</span>
-            <span>Auto Iqama</span>
+            <button
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="hover:text-rose-600 dark:hover:text-rose-400 font-medium transition-colors underline decoration-dotted"
+            >
+              Report Issue
+            </button>
             <span>·</span>
-            <span>Live Qibla Compass</span>
+            <button
+              onClick={handleOpenAdmin}
+              className="text-amber-700 dark:text-amber-400 font-semibold hover:underline flex items-center gap-1"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Super Admin Portal</span>
+            </button>
           </div>
         </div>
       </footer>
@@ -637,6 +716,12 @@ export default function App() {
           handleSurahChange(sId);
           setActiveTab('reader');
         }}
+      />
+
+      {/* User Feedback & Bug Reporting Modal */}
+      <UserFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
       />
 
     </div>

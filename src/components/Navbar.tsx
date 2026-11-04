@@ -22,7 +22,10 @@ import {
   X, 
   ChevronRight,
   ArrowLeft,
-  ChevronDown
+  ChevronDown,
+  Volume2,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { SurahMeta } from '../types/quran';
 
@@ -34,6 +37,7 @@ export type AppTab =
   | 'riwayah' 
   | 'library' 
   | 'prayer_times' 
+  | 'adhan_voices'
   | 'qibla' 
   | 'haramain' 
   | 'translations' 
@@ -50,6 +54,8 @@ interface NavbarProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenAudioHealth?: () => void;
+  onOpenAdmin?: () => void;
+  onOpenReportIssue?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -59,7 +65,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onResume,
   isDarkMode,
   onToggleDarkMode,
-  onOpenAudioHealth
+  onOpenAudioHealth,
+  onOpenAdmin,
+  onOpenReportIssue
 }) => {
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [isTabletMenuOpen, setIsTabletMenuOpen] = useState(false);
@@ -73,6 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       case 'riwayah': return '20 Riwayat';
       case 'library': return 'Islamic Library';
       case 'prayer_times': return 'Prayer Times';
+      case 'adhan_voices': return 'Worldwide Adhan Voices';
       case 'qibla': return 'Qibla Direction';
       case 'haramain': return 'Haramain Live';
       case 'translations': return 'Audio Translations';
@@ -95,7 +104,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isMoreActive = [
     'mushaf', 
     'riwayah', 
-    'prayer_times', 
+    'prayer_times',
+    'adhan_voices', 
     'qibla', 
     'haramain', 
     'translations', 
@@ -267,6 +277,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   <button
+                    onClick={() => handleSelectTab('adhan_voices')}
+                    className="w-full px-3 py-2 text-left rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-emerald-500" />
+                      <span>Adhan Voice Library</span>
+                    </span>
+                    <span className="text-[9px] px-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded font-bold">25+</span>
+                  </button>
+
+                  <button
                     onClick={() => handleSelectTab('translations')}
                     className="w-full px-3 py-2 text-left rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
                   >
@@ -305,6 +326,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Settings className="w-4 h-4 text-slate-500" />
                     <span>Settings & Iqama</span>
                   </button>
+
+                  {onOpenReportIssue && (
+                    <button
+                      onClick={() => {
+                        setIsTabletMenuOpen(false);
+                        onOpenReportIssue();
+                      }}
+                      className="w-full px-3 py-2 text-left rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4 text-rose-500" />
+                      <span>Report Issue / Audio Bug</span>
+                    </button>
+                  )}
+
+                  {onOpenAdmin && (
+                    <button
+                      onClick={() => {
+                        setIsTabletMenuOpen(false);
+                        onOpenAdmin();
+                      }}
+                      className="w-full px-3 py-2 text-left rounded-lg text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 flex items-center gap-2 border border-amber-200 dark:border-amber-800/60 mt-1"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Super Admin Gateway</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -745,6 +792,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </button>
 
+              {/* Worldwide Adhan Voices */}
+              <button
+                onClick={() => handleSelectTab('adhan_voices')}
+                className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                  activeTab === 'adhan_voices'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600'
+                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Volume2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Adhan Voices</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Authentic Muezzins</div>
+                </div>
+              </button>
+
               {/* Settings & Iqama */}
               <button
                 onClick={() => handleSelectTab('settings')}
@@ -760,6 +823,43 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="text-[10px] text-slate-500 dark:text-slate-400">Audio, times & theme</div>
                 </div>
               </button>
+
+              {/* Report Issue Modal Trigger */}
+              {onOpenReportIssue && (
+                <button
+                  onClick={() => {
+                    setIsMobileMoreOpen(false);
+                    onOpenReportIssue();
+                  }}
+                  className="p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 text-left flex items-start gap-2.5 hover:bg-rose-100/50 transition-all"
+                >
+                  <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Report Issue</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Audio bug & feedback</div>
+                  </div>
+                </button>
+              )}
+
+              {/* Super Admin Gateway */}
+              {onOpenAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMobileMoreOpen(false);
+                    onOpenAdmin();
+                  }}
+                  className="p-3 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-left flex items-start gap-2.5 hover:bg-amber-100/60 transition-all"
+                >
+                  <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      <span>Super Admin</span>
+                      <span className="text-[8px] px-1 bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 rounded font-bold">SECURE</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Portal & control center</div>
+                  </div>
+                </button>
+              )}
 
             </div>
 

@@ -1,12 +1,23 @@
 /**
  * Worldwide Adhan Notification and Playback Service
  * Dedicated to announcing the entry of prayer times for all 5 daily prayers.
- * Kept completely separate from Iqama (which is the congregation call).
+ * Strictly separated from Quran recitation & Iqama.
  */
+
+import { MUEZZIN_VOICES, MuezzinVoice, getMuezzinById } from '../data/muezzins';
 
 export interface AdhanSettings {
   enabled: boolean;
-  selectedVoice: 'makkah' | 'madinah' | 'alaqsa' | 'cairo' | 'alafasy' | 'nigerian';
+  selectedVoice: string; // Muezzin ID, default 'makkah_ali_mulla'
+  fajrVoice?: string;    // Dedicated Muezzin for Fajr
+  perPrayerVoices?: {
+    fajr?: string;
+    dhuhr?: string;
+    asr?: string;
+    maghrib?: string;
+    isha?: string;
+  };
+  favoriteVoices: string[];
   volume: number; // 0.1 to 1.0
   mode: 'adhan_and_notification' | 'notification_only' | 'silent';
   prePrayerReminderMinutes: number; // 0 = off, 5, 10, 15 min before
@@ -22,7 +33,16 @@ export interface AdhanSettings {
 
 export const DEFAULT_ADHAN_SETTINGS: AdhanSettings = {
   enabled: true,
-  selectedVoice: 'makkah',
+  selectedVoice: 'makkah_ali_mulla',
+  fajrVoice: 'makkah_ali_mulla',
+  perPrayerVoices: {
+    fajr: 'makkah_ali_mulla',
+    dhuhr: 'makkah_ali_mulla',
+    asr: 'makkah_ali_mulla',
+    maghrib: 'makkah_ali_mulla',
+    isha: 'makkah_ali_mulla'
+  },
+  favoriteVoices: ['makkah_ali_mulla', 'madinah_surayhi', 'nigeria_abuja_national', 'nigeria_kano_central'],
   volume: 0.9,
   mode: 'adhan_and_notification',
   prePrayerReminderMinutes: 0,
@@ -36,52 +56,15 @@ export const DEFAULT_ADHAN_SETTINGS: AdhanSettings = {
   }
 };
 
-export const ADHAN_VOICE_SOURCES: Record<
-  string, 
-  { name: string; arabicName: string; region: string; url: string; fallbackUrl: string }
-> = {
-  makkah: {
-    name: 'Masjid Al-Haram (Makkah Al-Mukarramah)',
-    arabicName: 'أذان المسجد الحرام بمكة',
-    region: 'Saudi Arabia',
-    url: 'https://cdn.islamic.network/audio/adhan/makkah.mp3',
-    fallbackUrl: 'https://archive.org/download/IslamicAdhanAndIqamaCollection/makkah_adhan.mp3'
-  },
-  madinah: {
-    name: 'Al-Masjid An-Nabawi (Al-Madinah)',
-    arabicName: 'أذان المسجد النبوي الشريف',
-    region: 'Saudi Arabia',
-    url: 'https://cdn.islamic.network/audio/adhan/madinah.mp3',
-    fallbackUrl: 'https://archive.org/download/IslamicAdhanAndIqamaCollection/madinah_adhan.mp3'
-  },
-  alaqsa: {
-    name: 'Al-Aqsa Mosque (Al-Quds)',
-    arabicName: 'أذان المسجد الأقصى المبارك',
-    region: 'Palestine',
-    url: 'https://cdn.islamic.network/audio/adhan/al-aqsa.mp3',
-    fallbackUrl: 'https://cdn.islamic.network/audio/adhan/makkah.mp3'
-  },
-  cairo: {
-    name: 'Al-Azhar Mosque (Cairo)',
-    arabicName: 'أذان الجامع الأزهر بمصر',
-    region: 'Egypt',
-    url: 'https://cdn.islamic.network/audio/adhan/egypt.mp3',
-    fallbackUrl: 'https://cdn.islamic.network/audio/adhan/makkah.mp3'
-  },
-  alafasy: {
-    name: 'Sheikh Mishary Rashid Alafasy',
-    arabicName: 'أذان الشيخ مشاري العفاسي',
-    region: 'Kuwait',
-    url: 'https://server8.mp3quran.net/afs/001.mp3',
-    fallbackUrl: 'https://cdn.islamic.network/audio/adhan/madinah.mp3'
-  },
-  nigerian: {
-    name: 'West African Bilal Style (Kano / Abuja)',
-    arabicName: 'الأذان على الطريقة الغرب إفريقية',
-    region: 'Nigeria',
-    url: 'https://cdn.islamic.network/audio/adhan/makkah.mp3', // High fidelity authentic feed
-    fallbackUrl: 'https://cdn.islamic.network/audio/adhan/madinah.mp3'
-  }
+export const ADHAN_VOICE_SOURCES: Record<string, { name: string; url: string; fallbackUrl?: string }> = {
+  ...MUEZZIN_VOICES.reduce((acc, m) => {
+    acc[m.id] = {
+      name: `${m.name} (${m.mosque || m.city})`,
+      url: m.audioUrl,
+      fallbackUrl: m.fallbackAudioUrl
+    };
+    return acc;
+  }, {} as Record<string, { name: string; url: string; fallbackUrl?: string }>)
 };
 
 const ADHAN_STORAGE_KEY = 'nur_quran_adhan_settings';
@@ -91,7 +74,23 @@ export function getAdhanSettings(): AdhanSettings {
   try {
     const saved = localStorage.getItem(ADHAN_STORAGE_KEY);
     if (saved) {
-      return { ...DEFAULT_ADHAN_SETTINGS, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      // Migrate legacy string keys like 'makkah', 'madinah'
+      let selectedVoice = parsed.selectedVoice || 'makkah_ali_mulla';
+      if (selectedVoice === 'makkah') selectedVoice = 'makkah_ali_mulla';
+      if (selectedVoice === 'madinah') selectedVoice = 'madinah_surayhi';
+      if (selectedVoice === 'alaqsa') selectedVoice = 'alaqsa_naji_qazzaz';
+      if (selectedVoice === 'cairo') selectedVoice = 'egypt_muhammad_rifat';
+      if (selectedVoice === 'nigerian') selectedVoice = 'nigeria_abuja_national';
+      if (selectedVoice === 'alafasy') selectedVoice = 'makkah_ali_mulla';
+
+      return {
+        ...DEFAULT_ADHAN_SETTINGS,
+        ...parsed,
+        selectedVoice,
+        favoriteVoices: parsed.favoriteVoices || DEFAULT_ADHAN_SETTINGS.favoriteVoices,
+        perPrayerVoices: parsed.perPrayerVoices || DEFAULT_ADHAN_SETTINGS.perPrayerVoices
+      };
     }
   } catch (e) {
     console.warn('Failed to load Adhan settings:', e);
@@ -107,17 +106,13 @@ export function saveAdhanSettings(settings: AdhanSettings): void {
   }
 }
 
-// Singleton active audio instance for Adhan
+// Active audio element for Adhan
 let activeAdhanAudio: HTMLAudioElement | null = null;
 
-/**
- * Requests browser permissions for audio and web notifications.
- */
 export async function requestAdhanPermissions(): Promise<{ audioAllowed: boolean; notificationsAllowed: boolean }> {
   let audioAllowed = false;
   let notificationsAllowed = false;
 
-  // 1. Silent audio unlock
   try {
     const silent = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
     await silent.play();
@@ -126,7 +121,6 @@ export async function requestAdhanPermissions(): Promise<{ audioAllowed: boolean
     audioAllowed = true;
   }
 
-  // 2. Notification permission
   if ('Notification' in window) {
     try {
       const perm = await Notification.requestPermission();
@@ -146,45 +140,79 @@ export async function requestAdhanPermissions(): Promise<{ audioAllowed: boolean
 }
 
 /**
- * Plays the chosen Adhan audio recording.
+ * Returns audio source for a given voice and prayer type.
  */
-export function playAdhanAudio(
-  voiceKey: AdhanSettings['selectedVoice'] = 'makkah',
-  volume: number = 0.9,
-  onEnded?: () => void
+export function getAdhanAudioUrl(voiceId: string, isFajr: boolean = false): { primary: string; fallback: string } {
+  const muezzin = getMuezzinById(voiceId) || MUEZZIN_VOICES[0];
+  if (isFajr && muezzin.fajrAudioUrl) {
+    return {
+      primary: muezzin.fajrAudioUrl,
+      fallback: muezzin.fallbackAudioUrl
+    };
+  }
+  return {
+    primary: muezzin.audioUrl,
+    fallback: muezzin.fallbackAudioUrl
+  };
+}
+
+/**
+ * Plays the actual Adhan recording for a Muezzin.
+ */
+export function playAdhanVoice(
+  voiceId: string, 
+  volume: number = 0.9, 
+  isFajr: boolean = false,
+  onEnd?: () => void
 ): HTMLAudioElement {
-  if (activeAdhanAudio) {
-    activeAdhanAudio.pause();
-    activeAdhanAudio = null;
+  stopAdhanAudio();
+
+  const { primary, fallback } = getAdhanAudioUrl(voiceId, isFajr);
+  const audio = new Audio();
+  audio.volume = Math.max(0.05, Math.min(1.0, volume));
+  audio.src = primary;
+
+  audio.onerror = () => {
+    console.warn(`Adhan primary audio failed (${primary}), falling back to ${fallback}`);
+    if (audio.src !== fallback) {
+      audio.src = fallback;
+      audio.play().catch(e => console.warn('Adhan fallback playback failed:', e));
+    }
+  };
+
+  if (onEnd) {
+    audio.onended = onEnd;
   }
 
-  const source = ADHAN_VOICE_SOURCES[voiceKey] || ADHAN_VOICE_SOURCES.makkah;
-  const audio = new Audio(source.url);
-  audio.volume = Math.max(0, Math.min(1, volume));
-
-  audio.play().catch((err) => {
-    console.warn('Adhan primary stream failed, trying fallback mirror:', err);
-    audio.src = source.fallbackUrl;
-    audio.play().catch(console.error);
+  audio.play().catch(err => {
+    console.warn('Adhan audio playback interrupted or blocked:', err);
   });
-
-  audio.onended = () => {
-    if (onEnded) onEnded();
-    activeAdhanAudio = null;
-  };
 
   activeAdhanAudio = audio;
   return audio;
 }
 
 /**
- * Stops any actively playing Adhan.
+ * Stops any currently playing Adhan.
  */
 export function stopAdhanAudio(): void {
   if (activeAdhanAudio) {
-    activeAdhanAudio.pause();
+    try {
+      activeAdhanAudio.pause();
+      activeAdhanAudio.currentTime = 0;
+      activeAdhanAudio.src = '';
+    } catch {
+      // Ignored
+    }
     activeAdhanAudio = null;
   }
+}
+
+/**
+ * Compatibility alias
+ */
+export function playAdhanAudio(voiceKey: string, volume: number = 0.9, onEnd?: () => void): HTMLAudioElement {
+  return playAdhanVoice(voiceKey, volume, false, onEnd);
 }
 
 /**
@@ -221,11 +249,21 @@ export function checkAndTriggerAdhan(
   };
   const displayName = prayerNames[prayerKey] || prayerKey.toUpperCase();
 
+  // Resolve voice ID: check prayer-specific override, then Fajr override, then global selectedVoice
+  let voiceId = settings.selectedVoice;
+  if (settings.perPrayerVoices && settings.perPrayerVoices[prayerKey]) {
+    voiceId = settings.perPrayerVoices[prayerKey]!;
+  } else if (prayerKey === 'fajr' && settings.fajrVoice) {
+    voiceId = settings.fajrVoice;
+  }
+
+  const muezzin = getMuezzinById(voiceId) || MUEZZIN_VOICES[0];
+
   // Show system notification if permitted
   if (settings.mode !== 'silent' && 'Notification' in window && Notification.permission === 'granted') {
     try {
       new Notification(`Hayya 'alas-Salah: ${displayName} Prayer Time`, {
-        body: `It is now time for the ${displayName} prayer in ${cityName} (${prayerTimeStr}). Come to prayer, come to success.`,
+        body: `It is now time for the ${displayName} prayer in ${cityName} (${prayerTimeStr}). Calling Adhan: ${muezzin.name} (${muezzin.mosque}).`,
         icon: '/favicon.ico'
       });
     } catch {
@@ -235,7 +273,7 @@ export function checkAndTriggerAdhan(
 
   // Play audio if enabled in settings
   if (settings.mode === 'adhan_and_notification') {
-    playAdhanAudio(settings.selectedVoice, settings.volume);
+    playAdhanVoice(voiceId, settings.volume, prayerKey === 'fajr');
   }
 
   try {
@@ -249,4 +287,79 @@ export function checkAndTriggerAdhan(
   }
 
   return true;
+}
+
+/**
+ * Returns the exact Muezzin configured for a specific prayer.
+ */
+export function getPrayerAdhanVoice(prayerKey: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'): MuezzinVoice {
+  const settings = getAdhanSettings();
+  let voiceId = settings.selectedVoice;
+  if (settings.perPrayerVoices && settings.perPrayerVoices[prayerKey]) {
+    voiceId = settings.perPrayerVoices[prayerKey]!;
+  } else if (prayerKey === 'fajr' && settings.fajrVoice) {
+    voiceId = settings.fajrVoice;
+  }
+  return getMuezzinById(voiceId) || MUEZZIN_VOICES[0];
+}
+
+/**
+ * Actively tests a Muezzin audio source for connectivity and playback.
+ */
+export async function verifyMuezzinAudio(voiceId: string): Promise<{
+  ok: boolean;
+  status: 'working' | 'broken' | 'fallback_only';
+  duration?: number;
+  error?: string;
+}> {
+  const muezzin = getMuezzinById(voiceId);
+  if (!muezzin) {
+    return { ok: false, status: 'broken', error: 'Muezzin not found in catalog' };
+  }
+
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    let isResolved = false;
+
+    const timeout = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true;
+        audio.src = '';
+        resolve({ ok: false, status: 'broken', error: 'Network request timed out' });
+      }
+    }, 8000);
+
+    audio.onloadedmetadata = () => {
+      if (!isResolved) {
+        isResolved = true;
+        clearTimeout(timeout);
+        const duration = Math.round(audio.duration || 0);
+        audio.src = '';
+        resolve({ ok: true, status: 'working', duration });
+      }
+    };
+
+    audio.onerror = () => {
+      if (!isResolved) {
+        // Test fallback
+        const fallbackAudio = new Audio();
+        fallbackAudio.onloadedmetadata = () => {
+          isResolved = true;
+          clearTimeout(timeout);
+          const duration = Math.round(fallbackAudio.duration || 0);
+          fallbackAudio.src = '';
+          resolve({ ok: true, status: 'fallback_only', duration });
+        };
+        fallbackAudio.onerror = () => {
+          isResolved = true;
+          clearTimeout(timeout);
+          fallbackAudio.src = '';
+          resolve({ ok: false, status: 'broken', error: 'Both primary and fallback streams unreachable' });
+        };
+        fallbackAudio.src = muezzin.fallbackAudioUrl;
+      }
+    };
+
+    audio.src = muezzin.audioUrl;
+  });
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Mic, 
   Square, 
@@ -9,18 +9,38 @@ import {
   Sparkles, 
   Star, 
   Volume2, 
-  ArrowRightLeft, 
   Sliders, 
   Layers,
   History,
-  BookOpen
+  BookOpen,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  HelpCircle,
+  ArrowRight,
+  Check,
+  RefreshCw,
+  Trash2,
+  Share2,
+  Info,
+  ShieldCheck,
+  Flame,
+  VolumeX
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Reciter, TajweedPracticeRecord } from '../types/quran';
-import { RECITERS, getSurahAudioUrl } from '../data/reciters';
-import { TAJWEED_PRACTICE_TARGETS, TajweedPracticeTarget, TAJWEED_RULES } from '../data/tajweedRules';
-import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
-import { saveTajweedRecord, getTajweedHistory } from '../services/storage';
+import { Reciter, Ayah, SurahMeta } from '../types/quran';
+import { SURAHS, getSurahById } from '../data/surahs';
+import { fetchSurahVerses } from '../services/quranApi';
+import { 
+  VERSE_BY_VERSE_RECITERS, 
+  getVerseAudioUrl, 
+  RecitationAnalysisResult, 
+  TajweedIssue,
+  extractTajweedPointsFromAyah,
+  getBenchmarkDurationForAyah,
+  evaluateRecitationAlgorithmic
+} from '../services/tajweedAnalysisService';
 
 interface TajweedStudioProps {
   currentReciter: Reciter;
@@ -29,789 +49,1350 @@ interface TajweedStudioProps {
   onProgressUpdate: () => void;
 }
 
+interface SavedPracticeSession {
+  id: string;
+  surahId: number;
+  ayahNumber: number;
+  surahName: string;
+  date: string;
+  wordsRecognizedCount: number;
+  wordsNeedingAttentionCount: number;
+  confidence: string;
+  method: string;
+  durationSeconds: number;
+  mistakesCount: number;
+}
+
 export const TajweedStudio: React.FC<TajweedStudioProps> = ({
   currentReciter,
   onSelectReciter,
   preselectedTarget,
   onProgressUpdate
 }) => {
-  // Practice Target selection
-  const [selectedTargetIndex, setSelectedTargetIndex] = useState<number>(0);
-  const target: TajweedPracticeTarget = TAJWEED_PRACTICE_TARGETS[selectedTargetIndex] || TAJWEED_PRACTICE_TARGETS[0];
+  // Navigation View Tab: 'studio' | 'report' | 'practice_history' | 'rules_guide'
+  const [activeView, setActiveView] = useState<'studio' | 'report' | 'history'>('studio');
 
-  // Benchmark Sheikh selection
-  const [benchmarkReciterId, setBenchmarkReciterId] = useState<string>(() => {
-    return currentReciter.id === 'mahmoud-khalil-al-husary' ? currentReciter.id : 'mahmoud-khalil-al-husary';
-  });
-  const benchmarkReciter = RECITERS.find(r => r.id === benchmarkReciterId) || RECITERS[3]; // default Al-Husary
+  // STEP 1 & 2: SURAH AND AYAH SELECTION
+  const [selectedSurahId, setSelectedSurahId] = useState<number>(() => preselectedTarget?.surahId || 1);
+  const [selectedAyahNumber, setSelectedAyahNumber] = useState<number>(() => preselectedTarget?.ayahNumber || 1);
+  const [selectionMode, setSelectionMode] = useState<'single' | 'range' | 'full_surah'>('single');
+  const [rangeEndAyah, setRangeEndAyah] = useState<number>(1);
+  const [surahSearchQuery, setSurahSearchQuery] = useState('');
+  const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
 
-  // Audio players for Sheikh and User
-  const [isSheikhPlaying, setIsSheikhPlaying] = useState<boolean>(false);
+  // Loaded Ayahs for Current Surah
+  const [surahAyahs, setSurahAyahs] = useState<Ayah[]>([]);
+  const [isLoadingAyahs, setIsLoadingAyahs] = useState<boolean>(true);
+
+  // STEP 3: BENCHMARK RECITER & VERSE AUDIO PLAYER
+  const [selectedVerseReciterId, setSelectedVerseReciterId] = useState<string>('husary_muallim');
+  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
+  const [isLooping, setIsLooping] = useState<boolean>(false);
+  const [isReferencePlaying, setIsReferencePlaying] = useState<boolean>(false);
+  const [currentPlayingAyah, setCurrentPlayingAyah] = useState<number>(1);
+  const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // STEP 4 & 5: USER AUDIO RECORDING
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isPausedRecording, setIsPausedRecording] = useState<boolean>(false);
+  const [recordingDuration, setRecordingDuration] = useState<number>(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedBase64, setRecordedBase64] = useState<string | null>(null);
+  const [micPermissionDenied, setMicPermissionDenied] = useState<boolean>(false);
+  const [audioLevels, setAudioLevels] = useState<number[]>(new Array(20).fill(8));
   const [isUserAudioPlaying, setIsUserAudioPlaying] = useState<boolean>(false);
-  const [abMode, setAbMode] = useState<'sheikh' | 'user'>('sheikh');
-  
-  const sheikhAudioRef = useRef<HTMLAudioElement | null>(null);
   const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Voice recorder hook
-  const {
-    isRecording,
-    recordingDuration,
-    recordedAudioUrl,
-    audioLevels,
-    micPermissionDenied,
-    analysis,
-    startRecording,
-    stopRecording,
-    resetRecording
-  } = useVoiceRecorder();
+  // STEP 6, 7 & 8: RECITATION ANALYSIS & ERROR REPORTS
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisResult, setAnalysisResult] = useState<RecitationAnalysisResult | null>(null);
+  const [activeHighlightedWordIdx, setActiveHighlightedWordIdx] = useState<number | null>(null);
+  const [selectedIssueForPractice, setSelectedIssueForPractice] = useState<TajweedIssue | null>(null);
 
-  // User self assessment state
-  const [selfRating, setSelfRating] = useState<number>(5);
-  const [practiceNotes, setPracticeNotes] = useState<string>('');
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
-  const [isSaved, setIsSaved] = useState<boolean>(false);
-  const [practiceHistory, setPracticeHistory] = useState<TajweedPracticeRecord[]>(() => getTajweedHistory());
-  const [activeTab, setActiveTab] = useState<'practice' | 'history' | 'rules'>('practice');
+  // STEP 9 & 10: ATTEMPT 2 (COMPARISON WORKFLOW)
+  const [previousAttemptAnalysis, setPreviousAttemptAnalysis] = useState<RecitationAnalysisResult | null>(null);
+  const [practiceAttemptCount, setPracticeAttemptCount] = useState<number>(1);
 
-  // Handle preselected target if passed from reader
+  // PRACTICE HISTORY
+  const [savedSessions, setSavedSessions] = useState<SavedPracticeSession[]>(() => {
+    try {
+      const saved = localStorage.getItem('nur_quran_tajweed_sessions');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // MediaRecorder references
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+
+  const selectedSurahMeta = getSurahById(selectedSurahId) || SURAHS[0];
+  const selectedVerseReciter = VERSE_BY_VERSE_RECITERS.find(r => r.id === selectedVerseReciterId) || VERSE_BY_VERSE_RECITERS[0];
+
+  // Load verses of the selected Surah
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingAyahs(true);
+
+    fetchSurahVerses(selectedSurahId).then((fetched) => {
+      if (isMounted) {
+        setSurahAyahs(fetched);
+        setIsLoadingAyahs(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedSurahId]);
+
+  // Handle preselected targets from reader
   useEffect(() => {
     if (preselectedTarget) {
-      const idx = TAJWEED_PRACTICE_TARGETS.findIndex(
-        t => t.surahId === preselectedTarget.surahId && t.ayahNumber === preselectedTarget.ayahNumber
-      );
-      if (idx !== -1) {
-        setSelectedTargetIndex(idx);
-      }
+      setSelectedSurahId(preselectedTarget.surahId);
+      setSelectedAyahNumber(preselectedTarget.ayahNumber);
+      setRangeEndAyah(preselectedTarget.ayahNumber);
+      setSelectionMode('single');
     }
   }, [preselectedTarget]);
 
-  // Setup Sheikh benchmark audio
+  // Clean up audio elements on unmount
   useEffect(() => {
-    const audioUrl = getSurahAudioUrl(benchmarkReciter, target.surahId);
-    if (!sheikhAudioRef.current) {
-      sheikhAudioRef.current = new Audio(audioUrl);
+    return () => {
+      if (referenceAudioRef.current) {
+        referenceAudioRef.current.pause();
+        referenceAudioRef.current.src = '';
+      }
+      if (userAudioPlayerRef.current) {
+        userAudioPlayerRef.current.pause();
+        userAudioPlayerRef.current.src = '';
+      }
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, []);
+
+  // Compute selected Ayah text
+  const currentAyahObj = useMemo(() => {
+    return surahAyahs.find(a => a.numberInSurah === selectedAyahNumber) || surahAyahs[0];
+  }, [surahAyahs, selectedAyahNumber]);
+
+  // Compute range of selected Ayahs if range mode is on
+  const selectedAyahsList = useMemo(() => {
+    if (selectionMode === 'single') {
+      return currentAyahObj ? [currentAyahObj] : [];
+    }
+    if (selectionMode === 'full_surah') {
+      return surahAyahs;
+    }
+    const start = Math.min(selectedAyahNumber, rangeEndAyah);
+    const end = Math.max(selectedAyahNumber, rangeEndAyah);
+    return surahAyahs.filter(a => a.numberInSurah >= start && a.numberInSurah <= end);
+  }, [selectionMode, currentAyahObj, surahAyahs, selectedAyahNumber, rangeEndAyah]);
+
+  // =========================================================================
+  // STEP 3: REFERENCE AUDIO PLAYBACK FOR EXACT AYAH
+  // =========================================================================
+  const playReferenceAyah = (ayahNum: number) => {
+    const audioUrl = getVerseAudioUrl(selectedVerseReciter.folder, selectedSurahId, ayahNum);
+    setCurrentPlayingAyah(ayahNum);
+
+    if (!referenceAudioRef.current) {
+      referenceAudioRef.current = new Audio(audioUrl);
     } else {
-      sheikhAudioRef.current.src = audioUrl;
+      referenceAudioRef.current.src = audioUrl;
     }
 
-    const audio = sheikhAudioRef.current;
-    const handleEnded = () => setIsSheikhPlaying(false);
-    const handleError = () => {
-      console.warn('Tajweed benchmark audio failed, switching to backup mirror');
-      if (benchmarkReciter.backupServerUrl && audio) {
-        const padded = target.surahId.toString().padStart(3, '0');
-        const backupBase = benchmarkReciter.backupServerUrl.endsWith('/') ? benchmarkReciter.backupServerUrl : benchmarkReciter.backupServerUrl + '/';
-        audio.src = `${backupBase}${padded}.mp3`;
+    const audio = referenceAudioRef.current;
+    audio.playbackRate = playbackRate;
+
+    audio.onended = () => {
+      if (isLooping && selectionMode === 'single') {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+        return;
       }
-    };
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
 
-    return () => {
-      audio.pause();
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-    };
-  }, [benchmarkReciter, target.surahId]);
+      // If in range or full surah mode, advance to next Ayah
+      if (selectionMode !== 'single') {
+        const nextAyah = ayahNum + 1;
+        const maxAyah = selectionMode === 'full_surah' ? selectedSurahMeta.versesCount : Math.max(selectedAyahNumber, rangeEndAyah);
+        if (nextAyah <= maxAyah) {
+          playReferenceAyah(nextAyah);
+          return;
+        }
+      }
 
-  // Setup User audio playback
-  useEffect(() => {
-    if (recordedAudioUrl) {
+      setIsReferencePlaying(false);
+    };
+
+    audio.onerror = () => {
+      console.warn(`Verse audio failed for ${selectedSurahId}:${ayahNum}, falling back to Alafasy.`);
+      audio.src = getVerseAudioUrl('Alafasy_128kbps', selectedSurahId, ayahNum);
+      audio.play().catch(e => console.warn('Fallback play failed:', e));
+    };
+
+    audio.play().then(() => {
+      setIsReferencePlaying(true);
+    }).catch(err => {
+      console.warn('Playback error:', err);
+      setIsReferencePlaying(false);
+    });
+  };
+
+  const handleToggleReferencePlay = () => {
+    if (isReferencePlaying) {
+      if (referenceAudioRef.current) {
+        referenceAudioRef.current.pause();
+      }
+      setIsReferencePlaying(false);
+    } else {
+      playReferenceAyah(selectedAyahNumber);
+    }
+  };
+
+  const handleChangeRate = (rate: number) => {
+    setPlaybackRate(rate);
+    if (referenceAudioRef.current) {
+      referenceAudioRef.current.playbackRate = rate;
+    }
+  };
+
+  // =========================================================================
+  // STEP 5: REAL MICROPHONE VOICE RECORDING
+  // =========================================================================
+  const handleStartRecording = async () => {
+    setMicPermissionDenied(false);
+    audioChunksRef.current = [];
+    setRecordedAudioUrl(null);
+    setRecordedBlob(null);
+    setRecordedBase64(null);
+    setRecordingDuration(0);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      audioContextRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const updateBars = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+        const sampled: number[] = [];
+        const step = Math.max(1, Math.floor(bufferLength / 20));
+        for (let i = 0; i < 20; i++) {
+          const val = dataArray[i * step] || 0;
+          sampled.push(Math.max(6, Math.min(100, Math.round((val / 255) * 100))));
+        }
+        setAudioLevels(sampled);
+        animFrameRef.current = requestAnimationFrame(updateBars);
+      };
+      animFrameRef.current = requestAnimationFrame(updateBars);
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      
+      const mediaRecorder = mimeType 
+        ? new MediaRecorder(stream, { mimeType }) 
+        : new MediaRecorder(stream);
+      
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        setRecordedBlob(audioBlob);
+        setRecordedAudioUrl(url);
+
+        // Convert Blob to Base64 for server-side Multimodal analysis
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setRecordedBase64(base64);
+        };
+        reader.readAsDataURL(audioBlob);
+
+        stream.getTracks().forEach(t => t.stop());
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => {});
+        }
+      };
+
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      setIsPausedRecording(false);
+
+      const startTime = Date.now();
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingDuration((Date.now() - startTime) / 1000);
+      }, 100);
+
+    } catch (err: any) {
+      console.error('Microphone access denied:', err);
+      setMicPermissionDenied(true);
+      setIsRecording(false);
+    }
+  };
+
+  const handlePauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setIsPausedRecording(true);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    }
+  };
+
+  const handleResumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setIsPausedRecording(false);
+      const resumedTime = Date.now() - (recordingDuration * 1000);
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingDuration((Date.now() - resumedTime) / 1000);
+      }, 100);
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    setIsPausedRecording(false);
+  };
+
+  const handleDeleteRecording = () => {
+    if (isUserAudioPlaying && userAudioPlayerRef.current) {
+      userAudioPlayerRef.current.pause();
+      setIsUserAudioPlaying(false);
+    }
+    setRecordedAudioUrl(null);
+    setRecordedBlob(null);
+    setRecordedBase64(null);
+    setRecordingDuration(0);
+    setAnalysisResult(null);
+  };
+
+  const handleToggleUserAudioPlay = () => {
+    if (!recordedAudioUrl) return;
+
+    if (isUserAudioPlaying) {
+      if (userAudioPlayerRef.current) {
+        userAudioPlayerRef.current.pause();
+      }
+      setIsUserAudioPlaying(false);
+    } else {
       if (!userAudioPlayerRef.current) {
         userAudioPlayerRef.current = new Audio(recordedAudioUrl);
       } else {
         userAudioPlayerRef.current.src = recordedAudioUrl;
       }
-
       const audio = userAudioPlayerRef.current;
-      const handleEnded = () => setIsUserAudioPlaying(false);
-      audio.addEventListener('ended', handleEnded);
-
-      return () => {
-        audio.pause();
-        audio.removeEventListener('ended', handleEnded);
-      };
-    }
-  }, [recordedAudioUrl]);
-
-  const togglePlaySheikh = () => {
-    if (!sheikhAudioRef.current) return;
-    if (isSheikhPlaying) {
-      sheikhAudioRef.current.pause();
-      setIsSheikhPlaying(false);
-    } else {
-      if (userAudioPlayerRef.current) userAudioPlayerRef.current.pause();
-      setIsUserAudioPlaying(false);
-      sheikhAudioRef.current.play().then(() => setIsSheikhPlaying(true)).catch(console.error);
+      audio.onended = () => setIsUserAudioPlaying(false);
+      audio.play().then(() => setIsUserAudioPlaying(true)).catch(() => setIsUserAudioPlaying(false));
     }
   };
 
-  const togglePlayUserAudio = () => {
-    if (!userAudioPlayerRef.current || !recordedAudioUrl) return;
-    if (isUserAudioPlaying) {
-      userAudioPlayerRef.current.pause();
-      setIsUserAudioPlaying(false);
-    } else {
-      if (sheikhAudioRef.current) sheikhAudioRef.current.pause();
-      setIsSheikhPlaying(false);
-      userAudioPlayerRef.current.play().then(() => setIsUserAudioPlaying(true)).catch(console.error);
+  // =========================================================================
+  // STEP 6: ANALYSE MY RECITATION (GENUINE ANALYSIS PIPELINE)
+  // =========================================================================
+  const handleAnalyzeRecitation = async () => {
+    if (!currentAyahObj) return;
+    setIsAnalyzing(true);
+
+    if (analysisResult) {
+      setPreviousAttemptAnalysis(analysisResult);
     }
-  };
-
-  const handleAbToggle = (mode: 'sheikh' | 'user') => {
-    setAbMode(mode);
-    if (mode === 'sheikh') {
-      if (userAudioPlayerRef.current) userAudioPlayerRef.current.pause();
-      setIsUserAudioPlaying(false);
-      if (sheikhAudioRef.current) {
-        sheikhAudioRef.current.currentTime = 0;
-        sheikhAudioRef.current.play().then(() => setIsSheikhPlaying(true)).catch(console.error);
-      }
-    } else {
-      if (sheikhAudioRef.current) sheikhAudioRef.current.pause();
-      setIsSheikhPlaying(false);
-      if (userAudioPlayerRef.current) {
-        userAudioPlayerRef.current.currentTime = 0;
-        userAudioPlayerRef.current.play().then(() => setIsUserAudioPlaying(true)).catch(console.error);
-      }
-    }
-  };
-
-  const handleSaveSession = () => {
-    if (!analysis) return;
-    const record: TajweedPracticeRecord = {
-      id: `practice-${Date.now()}`,
-      timestamp: Date.now(),
-      surahId: target.surahId,
-      surahName: target.surahName,
-      ayahNumber: target.ayahNumber,
-      reciterId: benchmarkReciter.id,
-      reciterName: benchmarkReciter.name,
-      riwayah: benchmarkReciter.riwayah,
-      audioDurationSeconds: Math.round(recordingDuration * 10) / 10,
-      alignmentScore: analysis.overallScore,
-      breakdown: {
-        pacingMatch: analysis.pacingMatch,
-        maddElongation: analysis.maddElongation,
-        ghunnahTiming: analysis.ghunnahTiming,
-        waqfStopTiming: analysis.waqfStopTiming,
-        rhymeHarmony: analysis.rhymeHarmony
-      },
-      notes: practiceNotes || `Practiced ${target.rhymeEnding} alignment with Sheikh ${benchmarkReciter.name}.`,
-      selfRating
-    };
-
-    const updated = saveTajweedRecord(record);
-    setPracticeHistory(updated);
-    setIsSaved(true);
-    onProgressUpdate();
 
     try {
-      confetti({
-        particleCount: 60,
-        spread: 55,
-        origin: { y: 0.6 }
+      const response = await fetch('/api/tajweed/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          surahId: selectedSurahId,
+          ayahNumber: selectedAyahNumber,
+          surahName: selectedSurahMeta.nameEnglish,
+          textArabic: currentAyahObj.textArabic,
+          riwayahId: currentReciter.riwayahId || 'hafs',
+          durationSeconds: recordingDuration,
+          audioBase64: recordedBase64,
+          mimeType: recordedBlob?.type || 'audio/webm'
+        })
       });
-    } catch {
-      // safe
+
+      if (!response.ok) {
+        throw new Error(`Analysis server returned ${response.status}`);
+      }
+
+      const result: RecitationAnalysisResult = await response.json();
+      setAnalysisResult(result);
+      setPracticeAttemptCount(prev => prev + 1);
+
+      // Save to practice session history
+      const newSession: SavedPracticeSession = {
+        id: 'sess_' + Date.now(),
+        surahId: selectedSurahId,
+        ayahNumber: selectedAyahNumber,
+        surahName: selectedSurahMeta.nameEnglish,
+        date: new Date().toISOString(),
+        wordsRecognizedCount: result.wordsRecognizedCount,
+        wordsNeedingAttentionCount: result.wordsNeedingAttentionCount,
+        confidence: result.confidence,
+        method: result.analysisMethod,
+        durationSeconds: recordingDuration,
+        mistakesCount: result.detectedIssues.filter(i => i.status === 'needs_improvement').length
+      };
+
+      const updatedHistory = [newSession, ...savedSessions.slice(0, 49)];
+      setSavedSessions(updatedHistory);
+      try {
+        localStorage.setItem('nur_quran_tajweed_sessions', JSON.stringify(updatedHistory));
+      } catch (err) {
+        console.warn('Failed to save session history:', err);
+      }
+
+      onProgressUpdate();
+
+      // Confetti celebratory feedback if zero errors!
+      if (result.wordsNeedingAttentionCount === 0 && result.detectedIssues.filter(i => i.status === 'needs_improvement').length === 0) {
+        try {
+          confetti({ particleCount: 80, spread: 65, origin: { y: 0.6 } });
+        } catch {}
+      }
+
+    } catch (err) {
+      console.warn('Backend analysis request failed, executing deterministic client-side engine:', err);
+      // Deterministic client-side evaluation fallback
+      const benchmarkSec = getBenchmarkDurationForAyah(
+        selectedSurahId, 
+        selectedAyahNumber, 
+        currentAyahObj.textArabic.split(/\s+/).length
+      );
+      const fallbackResult = evaluateRecitationAlgorithmic({
+        surahId: selectedSurahId,
+        ayahNumber: selectedAyahNumber,
+        surahName: selectedSurahMeta.nameEnglish,
+        textArabic: currentAyahObj.textArabic,
+        recordingDurationSeconds: recordingDuration,
+        benchmarkDurationSeconds: benchmarkSec,
+        riwayahId: currentReciter.riwayahId || 'hafs'
+      });
+      setAnalysisResult(fallbackResult);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
+  // Filter Surahs for Quick Search
+  const filteredSurahs = useMemo(() => {
+    const q = surahSearchQuery.toLowerCase().trim();
+    if (!q) return SURAHS;
+    return SURAHS.filter(s => 
+      s.id.toString() === q ||
+      s.id.toString().startsWith(q) ||
+      s.nameEnglish.toLowerCase().includes(q) ||
+      s.nameArabic.includes(q) ||
+      s.transliteration.toLowerCase().includes(q)
+    );
+  }, [surahSearchQuery]);
+
   return (
-    <div className="space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in">
       
-      {/* Studio Header Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-sm relative overflow-hidden">
-        {/* Subtle illuminated manuscript texture */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/src/assets/images/tajweed_illumination_1793095242022.jpg"
-            alt="Illuminated Quran manuscript page with vocalization marks"
-            className="w-full h-full object-cover object-right opacity-20"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-900/70" />
+      {/* View Switcher Tabs: Studio / Detailed Report / Practice History */}
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
+          <button
+            onClick={() => setActiveView('studio')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeView === 'studio'
+                ? 'bg-white dark:bg-slate-900 text-emerald-800 dark:text-emerald-300 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Mic className="w-4 h-4 text-emerald-600" />
+            <span>Practice Studio</span>
+          </button>
+
+          {analysisResult && (
+            <button
+              onClick={() => setActiveView('report')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                activeView === 'report'
+                  ? 'bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Detailed Report ({analysisResult.detectedIssues.length})</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveView('history')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeView === 'history'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <History className="w-4 h-4 text-indigo-500" />
+            <span>Practice History ({savedSessions.length})</span>
+          </button>
         </div>
 
-        <div className="relative z-10 max-w-3xl">
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-medium mb-2">
-            <span>Interactive Tajweed Studio</span>
-            <span aria-hidden="true">·</span>
-            <span>Rhyme & Alignment Tracker</span>
-            <span aria-hidden="true">·</span>
-            <span>Sheikh Comparison</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-            Tajweed Alignment & Rhyme Studio
-          </h1>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            Recite and listen in real time to hear if your Tajweed rhymes and goes in line with the Sheikh’s recitation style. Compare breath pacing, Madd elongation, and Ghunnah resonance side by side.
-          </p>
-
-          {/* Sub-navigation tabs */}
-          <div className="flex items-center gap-2 mt-6">
-            <button
-              onClick={() => setActiveTab('practice')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'practice'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <Mic className="w-3.5 h-3.5" />
-              <span>Studio & Alignment</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'history'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <History className="w-3.5 h-3.5" />
-              <span>Practice History ({practiceHistory.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('rules')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'rules'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Tajweed Rules Guide</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Ambient watermark */}
-        <div className="absolute right-6 -bottom-8 text-slate-800/40 font-arabic text-9xl select-none pointer-events-none hidden md:block">
-          تَجْوِيد
+        {/* Selected Ayah Pill Badge */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+          <span>Surah {selectedSurahMeta.id}: {selectedSurahMeta.nameEnglish}</span>
+          <span>·</span>
+          <span>Ayah {selectedAyahNumber}</span>
+          <span>·</span>
+          <span>{currentReciter.riwayah}</span>
         </div>
       </div>
 
-      {activeTab === 'practice' && (
+      {/* =====================================================================
+          VIEW 1: PRACTICE STUDIO
+         ===================================================================== */}
+      {activeView === 'studio' && (
         <div className="space-y-6">
-          
-          {/* Practice Configuration Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            
-            {/* Target Verse Selector */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Target Ayah for Tajweed Practice:
-              </label>
-              <select
-                value={selectedTargetIndex}
-                onChange={(e) => {
-                  setSelectedTargetIndex(Number(e.target.value));
-                  resetRecording();
-                  setIsSaved(false);
-                }}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              >
-                {TAJWEED_PRACTICE_TARGETS.map((t, idx) => (
-                  <option key={idx} value={idx}>
-                    Surah {t.surahName} (Ayah {t.ayahNumber}) · Rhyme: {t.rhymeEnding}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {/* Benchmark Sheikh Selector */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Benchmark Sheikh / Scholar to Match:
-              </label>
-              <select
-                value={benchmarkReciterId}
-                onChange={(e) => {
-                  setBenchmarkReciterId(e.target.value);
-                  resetRecording();
-                  setIsSaved(false);
-                }}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              >
-                {RECITERS.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Sheikh {r.name} ({r.riwayah} - {r.style})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-          </div>
-
-          {/* Target Verse Focus Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-sm space-y-4">
-            
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-semibold text-emerald-800 dark:text-emerald-400">Surah {target.surahName}</span>
-                <span aria-hidden="true">·</span>
-                <span>Ayah {target.ayahNumber}</span>
-                <span aria-hidden="true">·</span>
-                <span className="text-amber-800 dark:text-amber-400 font-medium">Rhyme Ending: {target.rhymeEnding}</span>
+          {/* =================================================================
+              STEP 1 & 2: AYAH SELECTION SYSTEM
+             ================================================================= */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <span>Step 1 & 2: Select Exact Surah & Ayah</span>
               </div>
 
-              <div className="text-xs text-slate-500 dark:text-slate-400">
-                Sheikh Style: <strong className="text-slate-800 dark:text-slate-200">{benchmarkReciter.riwayah} ({benchmarkReciter.style})</strong>
+              {/* Selection Mode Selector: Single Ayah, Range, or Full Surah */}
+              <div className="flex items-center gap-1 text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button
+                  onClick={() => setSelectionMode('single')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    selectionMode === 'single' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs' : 'text-slate-500'
+                  }`}
+                >
+                  Single Ayah
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectionMode('range');
+                    setRangeEndAyah(Math.min(selectedAyahNumber + 2, selectedSurahMeta.versesCount));
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    selectionMode === 'range' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs' : 'text-slate-500'
+                  }`}
+                >
+                  Ayah Range
+                </button>
+                <button
+                  onClick={() => setSelectionMode('full_surah')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    selectionMode === 'full_surah' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs' : 'text-slate-500'
+                  }`}
+                >
+                  Full Surah
+                </button>
               </div>
             </div>
 
-            {/* Large Arabic Uthmani Script */}
-            <div 
-              className="font-arabic text-3xl sm:text-4xl text-slate-900 dark:text-slate-100 leading-[2.4] text-center font-semibold py-2" 
-              dir="rtl"
-            >
-              {target.arabicText}
-            </div>
-
-            {/* Transliteration & English */}
-            <div className="text-center space-y-1">
-              <div className="text-xs font-medium text-emerald-900 dark:text-emerald-400 italic">
-                {target.transliteration}
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-300">
-                {target.translation}
-              </div>
-            </div>
-
-            {/* Key Tajweed Rules for this verse */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="font-semibold text-slate-600 dark:text-slate-400 mr-1">Key Tajweed Targets:</span>
-                {target.primaryRules.map((rule, idx) => (
-                  <span key={idx} className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 px-2 py-0.5 rounded text-[11px] font-medium">
-                    {rule}
-                  </span>
-                ))}
-              </div>
-
-              <div className="text-xs text-slate-500 dark:text-slate-400 italic max-w-sm text-right">
-                💡 {target.tips}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Interactive Dual Audio Player & Visualizer Studio */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            
-            {/* Player 1: Benchmark Sheikh Audio */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
-                      1
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+              
+              {/* Surah Dropdown Selector with Instant Search */}
+              <div className="sm:col-span-6 relative">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  1. Choose Surah (1 to 114):
+                </label>
+                <button
+                  onClick={() => setIsSurahDropdownOpen(prev => !prev)}
+                  className="w-full py-2 px-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shrink-0 font-mono">
+                      {selectedSurahMeta.id}
                     </span>
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                        Benchmark: Sheikh {benchmarkReciter.name.split(' ')[0]}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {benchmarkReciter.country} · {benchmarkReciter.riwayah}
-                      </p>
+                    <span className="truncate">{selectedSurahMeta.nameEnglish}</span>
+                    <span className="font-arabic text-slate-400">({selectedSurahMeta.nameArabic})</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                </button>
+
+                {isSurahDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 max-h-72 flex flex-col space-y-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={surahSearchQuery}
+                        onChange={(e) => setSurahSearchQuery(e.target.value)}
+                        placeholder="Search Surah by name or number..."
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="overflow-y-auto space-y-0.5 max-h-52 pr-1">
+                      {filteredSurahs.map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedSurahId(s.id);
+                            setSelectedAyahNumber(1);
+                            setRangeEndAyah(Math.min(3, s.versesCount));
+                            setIsSurahDropdownOpen(false);
+                            setSurahSearchQuery('');
+                            setAnalysisResult(null);
+                          }}
+                          className={`w-full px-3 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors ${
+                            s.id === selectedSurahId 
+                              ? 'bg-emerald-700 text-white font-bold' 
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="text-[10px] opacity-70 font-mono w-4">{s.id}.</span>
+                            <span>{s.nameEnglish}</span>
+                          </span>
+                          <span className="font-arabic text-xs opacity-80">{s.nameArabic}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-
-                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded">
-                    Gold Standard
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
-                  Listen closely to the Sheikh’s breath pacing, how he stops at the Waqf, and the duration of his Madd elongation.
-                </p>
-
-                {/* Sheikh Audio Controls */}
-                <div className="bg-slate-50 dark:bg-slate-800/70 rounded-lg p-3.5 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                  <button
-                    onClick={togglePlaySheikh}
-                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors"
-                  >
-                    {isSheikhPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                    <span>{isSheikhPlaying ? 'Pause Sheikh' : 'Play Benchmark Audio'}</span>
-                  </button>
-
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
-                    <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Surah {target.surahName}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/50 p-2.5 rounded border border-slate-100 dark:border-slate-800">
-                <strong>Pedagogical tip:</strong> Notice how the Sheikh articulates the throat letters and avoids cutting the vowel short.
-              </div>
-            </div>
-
-            {/* Player 2: User Voice Recorder & Realtime Visualizer */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-400 flex items-center justify-center font-bold text-xs">
-                      2
-                    </span>
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                        Your Recitation & Voice Test
-                      </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Microphone capture with Tajweed wave analysis
-                      </p>
-                    </div>
-                  </div>
-
-                  {isRecording && (
-                    <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse"></span>
-                      Recording ({recordingDuration.toFixed(1)}s)
-                    </span>
-                  )}
-                </div>
-
-                {/* Live Real-time Audio Wave Visualizer */}
-                <div className="h-16 bg-slate-900 rounded-lg p-2.5 flex items-end justify-center gap-1 mb-4 border border-slate-800">
-                  {audioLevels.map((lvl, idx) => (
-                    <div
-                      key={idx}
-                      className="w-2 rounded-t transition-all duration-75"
-                      style={{
-                        height: isRecording ? `${lvl}%` : (recordedAudioUrl ? '30%' : '15%'),
-                        backgroundColor: isRecording 
-                          ? (lvl > 60 ? '#f59e0b' : '#10b981') 
-                          : (recordedAudioUrl ? '#059669' : '#334155')
-                      }}
-                    />
-                  ))}
-                </div>
-
-                {/* Recorder Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {!isRecording ? (
-                    <button
-                      onClick={startRecording}
-                      className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Mic className="w-3.5 h-3.5" />
-                      <span>{recordedAudioUrl ? 'Re-record Recitation' : 'Record Your Voice'}</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => stopRecording(5.0)}
-                      className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-slate-900 hover:bg-black rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Square className="w-3.5 h-3.5 fill-current" />
-                      <span>Stop & Analyze Tajweed</span>
-                    </button>
-                  )}
-
-                  {recordedAudioUrl && !isRecording && (
-                    <button
-                      onClick={togglePlayUserAudio}
-                      className="py-2 px-3 text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 hover:bg-emerald-200 dark:hover:bg-emerald-900/80 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      {isUserAudioPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                      <span>Hear Your Voice ({recordingDuration.toFixed(1)}s)</span>
-                    </button>
-                  )}
-                </div>
-
-                {micPermissionDenied && (
-                  <p className="text-xs text-rose-600 dark:text-rose-400 mt-2">
-                    Microphone access was denied. Please allow microphone permissions in your browser to record.
-                  </p>
                 )}
               </div>
 
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/50 p-2.5 rounded border border-slate-100 dark:border-slate-800">
-                <strong>Goal:</strong> Pronounce clearly, hold the {target.rhymeEnding} rhyme, and align your tempo with the Sheikh.
-              </div>
-            </div>
+              {/* Exact Ayah Selection */}
+              {selectionMode === 'single' && (
+                <div className="sm:col-span-6">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                    2. Select Exact Ayah (Total: {selectedSurahMeta.versesCount} Ayat):
+                  </label>
+                  <select
+                    value={selectedAyahNumber}
+                    onChange={(e) => {
+                      setSelectedAyahNumber(parseInt(e.target.value, 10));
+                      setAnalysisResult(null);
+                    }}
+                    className="w-full py-2 px-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white"
+                  >
+                    {Array.from({ length: selectedSurahMeta.versesCount }, (_, i) => i + 1).map(num => (
+                      <option key={num} value={num}>
+                        Ayah {num} of {selectedSurahMeta.versesCount}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
+              {/* Range Ayah Selection */}
+              {selectionMode === 'range' && (
+                <>
+                  <div className="sm:col-span-3">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                      Start Ayah:
+                    </label>
+                    <select
+                      value={selectedAyahNumber}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setSelectedAyahNumber(val);
+                        if (rangeEndAyah < val) setRangeEndAyah(val);
+                        setAnalysisResult(null);
+                      }}
+                      className="w-full py-2 px-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white"
+                    >
+                      {Array.from({ length: selectedSurahMeta.versesCount }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num}>
+                          Ayah {num}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                      End Ayah:
+                    </label>
+                    <select
+                      value={rangeEndAyah}
+                      onChange={(e) => {
+                        setRangeEndAyah(parseInt(e.target.value, 10));
+                        setAnalysisResult(null);
+                      }}
+                      className="w-full py-2 px-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white"
+                    >
+                      {Array.from({ length: selectedSurahMeta.versesCount }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num} disabled={num < selectedAyahNumber}>
+                          Ayah {num}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Full Surah Mode */}
+              {selectionMode === 'full_surah' && (
+                <div className="sm:col-span-6 flex items-center pt-5">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-xl border border-emerald-200 dark:border-emerald-800 w-full text-center">
+                    All {selectedSurahMeta.versesCount} Ayat selected for sequential recitation practice
+                  </div>
+                </div>
+              )}
+
+            </div>
           </div>
 
-          {/* Step 3: A/B "Rhyme & Alignment" Listening Toggle & Synchronizer */}
-          {recordedAudioUrl && (
-            <div className="bg-emerald-950 text-white rounded-xl p-5 border border-emerald-800 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <ArrowRightLeft className="w-4 h-4 text-amber-400" />
-                    <span>A/B Rhyme & Cadence Alignment Test</span>
-                  </h3>
-                  <p className="text-xs text-emerald-200/90 mt-0.5">
-                    Toggle between the Sheikh and your own voice to immediately hear differences in prolongation, melody, and stop timing.
-                  </p>
-                </div>
+          {/* =================================================================
+              STEP 3: REFERENCE AUDIO & RECITER SELECTOR
+             ================================================================= */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+                <span>Step 3: Listen to Reference Reciter (Verse-Level Audio)</span>
+              </div>
 
-                {/* A/B Switcher Buttons */}
-                <div className="flex items-center gap-1 bg-emerald-900/80 p-1 rounded-lg border border-emerald-700/60">
-                  <button
-                    onClick={() => handleAbToggle('sheikh')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                      abMode === 'sheikh'
-                        ? 'bg-amber-400 text-slate-950 shadow-sm'
-                        : 'text-emerald-200 hover:text-white'
-                    }`}
-                  >
-                    Listen to Sheikh
-                  </button>
-                  <button
-                    onClick={() => handleAbToggle('user')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                      abMode === 'user'
-                        ? 'bg-amber-400 text-slate-950 shadow-sm'
-                        : 'text-emerald-200 hover:text-white'
-                    }`}
-                  >
-                    Listen to Your Voice
-                  </button>
-                </div>
+              {/* Master Benchmark Reciter Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">Reciter:</span>
+                <select
+                  value={selectedVerseReciterId}
+                  onChange={(e) => {
+                    setSelectedVerseReciterId(e.target.value);
+                    if (isReferencePlaying && referenceAudioRef.current) {
+                      referenceAudioRef.current.pause();
+                      setIsReferencePlaying(false);
+                    }
+                  }}
+                  className="py-1 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white"
+                >
+                  {VERSE_BY_VERSE_RECITERS.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          )}
 
-          {/* Step 4: Tajweed Alignment Scorecard & Detailed Feedback */}
-          {analysis && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    <span>Tajweed Evaluation Matrix</span>
-                    <span aria-hidden="true">·</span>
-                    <span>Benchmarked against Sheikh {benchmarkReciter.name}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Tajweed Harmony & Rhyme Analysis
-                  </h3>
-                </div>
-
-                {/* Overall Score Badge */}
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                      {analysis.overallScore}%
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      Alignment Match
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full border-4 border-emerald-600 dark:border-emerald-500 flex items-center justify-center font-bold text-emerald-800 dark:text-emerald-300 text-xs">
-                    {analysis.overallScore >= 90 ? 'Mumtaz' : 'Jayyid'}
-                  </div>
-                </div>
-              </div>
-
-              {/* 5 Dimensional Breakdown Bars */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                
-                <div className="bg-slate-50 dark:bg-slate-800/70 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80">
-                  <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    <span>Pacing / Tempo</span>
-                    <strong className="text-emerald-800 dark:text-emerald-400">{analysis.pacingMatch}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full" style={{ width: `${analysis.pacingMatch}%` }} />
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">Breath timing match</p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/70 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80">
-                  <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    <span>Madd Elongation</span>
-                    <strong className="text-emerald-800 dark:text-emerald-400">{analysis.maddElongation}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full" style={{ width: `${analysis.maddElongation}%` }} />
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">2, 4, 6 Harakat hold</p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/70 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80">
-                  <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    <span>Ghunnah Timing</span>
-                    <strong className="text-emerald-800 dark:text-emerald-400">{analysis.ghunnahTiming}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full" style={{ width: `${analysis.ghunnahTiming}%` }} />
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">Nasal resonance (2 counts)</p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/70 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80">
-                  <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    <span>Waqf / Stop Rhyme</span>
-                    <strong className="text-emerald-800 dark:text-emerald-400">{analysis.waqfStopTiming}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full" style={{ width: `${analysis.waqfStopTiming}%` }} />
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">{target.rhymeEnding} release</p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/70 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80">
-                  <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    <span>Tonal Rhyme</span>
-                    <strong className="text-emerald-800 dark:text-emerald-400">{analysis.rhymeHarmony}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full" style={{ width: `${analysis.rhymeHarmony}%` }} />
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">Melodic cadence & flow</p>
-                </div>
-
-              </div>
-
-              {/* Feedback Advice */}
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60 rounded-lg p-4 space-y-2">
-                <h4 className="text-xs font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-                  <span>Scholarly Tajweed Guidance:</span>
-                </h4>
-                <ul className="text-xs text-emerald-950 dark:text-emerald-200 space-y-1 pl-4 list-disc">
-                  {analysis.feedback.map((f, fIdx) => (
-                    <li key={fIdx}>{f}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Self Assessment & Practice Logging */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                
-                {/* Rating */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Self Rating:</span>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setSelfRating(star)}
-                        className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${star <= selfRating ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
-                      >
-                        <Star className={`w-4 h-4 ${star <= selfRating ? 'fill-current' : ''}`} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Save to History Button */}
+            {/* Reference Player Bar */}
+            <div className="p-4 rounded-2xl bg-emerald-950/20 dark:bg-slate-800/60 border border-emerald-500/20 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={handleSaveSession}
-                  disabled={isSaved}
-                  className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 ${
-                    isSaved
-                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-default'
-                      : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm'
+                  onClick={handleToggleReferencePlay}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all shadow-md ${
+                    isReferencePlaying
+                      ? 'bg-amber-500 text-slate-950 animate-pulse'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-500'
                   }`}
+                  title={isReferencePlaying ? 'Pause Reference' : 'Play Selected Ayah'}
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSaved ? 'Session Logged in History' : 'Save Session to History'}</span>
+                  {isReferencePlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                 </button>
 
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    {isReferencePlaying 
+                      ? `Playing Surah ${selectedSurahId}, Ayah ${currentPlayingAyah}...`
+                      : `Listen to Ayah ${selectedAyahNumber}`}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {selectedVerseReciter.style}
+                  </div>
+                </div>
               </div>
 
+              {/* Playback Speed & Repeat Controls */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white/60 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
+                  {[0.5, 0.75, 1.0, 1.25].map(spd => (
+                    <button
+                      key={spd}
+                      onClick={() => handleChangeRate(spd)}
+                      className={`px-2 py-0.5 rounded-lg transition-colors ${
+                        playbackRate === spd
+                          ? 'bg-emerald-700 text-white'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setIsLooping(prev => !prev)}
+                  title="Loop / Repeat Ayah"
+                  className={`p-2 rounded-xl border transition-all text-xs flex items-center gap-1 font-semibold ${
+                    isLooping
+                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-400'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Repeat</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* =================================================================
+              STEP 4: ARABIC TEXT OF THE SELECTED AYAH
+             ================================================================= */}
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 text-center">
+            <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">
+              <span className="font-semibold">Uthmani Text · Surah {selectedSurahMeta.nameEnglish} ({selectedSurahId}:{selectedAyahNumber})</span>
+              <span>Canonical Hafs / Riwayah Text</span>
+            </div>
+
+            {isLoadingAyahs ? (
+              <div className="py-8 text-slate-400 text-xs animate-pulse">
+                Loading verified Quranic Uthmani text...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedAyahsList.map((ayah) => {
+                  const words = ayah.textArabic.trim().split(/\s+/);
+                  return (
+                    <div key={ayah.numberInSurah} className="space-y-3 py-2">
+                      <div 
+                        className="font-arabic text-2xl sm:text-3xl leading-[2.4] text-slate-900 dark:text-white text-right dir-rtl select-text"
+                        dir="rtl"
+                      >
+                        {words.map((w, wIdx) => {
+                          const isHighlighted = activeHighlightedWordIdx === wIdx;
+                          return (
+                            <span 
+                              key={wIdx} 
+                              className={`inline-block px-1.5 py-0.5 rounded-lg transition-all mx-0.5 cursor-pointer ${
+                                isHighlighted
+                                  ? 'bg-amber-300 dark:bg-amber-500 text-slate-950 font-bold scale-105 shadow-sm'
+                                  : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                              }`}
+                              onClick={() => setActiveHighlightedWordIdx(wIdx === activeHighlightedWordIdx ? null : wIdx)}
+                              title={`Word ${wIdx + 1}: ${w}`}
+                            >
+                              {w}
+                            </span>
+                          );
+                        })}
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-emerald-600 text-emerald-700 dark:text-emerald-400 text-xs font-mono font-bold mr-2 align-middle">
+                          {ayah.numberInSurah}
+                        </span>
+                      </div>
+
+                      {ayah.translation && (
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 italic text-left">
+                          "{ayah.translation}"
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* =================================================================
+              STEP 5: RECORD MY OWN RECITATION
+             ================================================================= */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <Mic className="w-4 h-4 text-rose-500" />
+                <span>Step 5: Record Your Voice Reciting This Ayah</span>
+              </div>
+
+              {recordingDuration > 0 && (
+                <div className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-rose-500 animate-ping' : 'bg-slate-400'}`} />
+                  <span>{recordingDuration.toFixed(1)}s</span>
+                </div>
+              )}
+            </div>
+
+            {/* Permission Banner */}
+            {micPermissionDenied && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold">Microphone access was blocked or dismissed.</strong>
+                  <div className="text-[11px] mt-0.5">Please allow microphone permissions in your browser address bar to record your voice.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Real-time Waveform Audio Visualizer */}
+            {isRecording && (
+              <div className="h-16 bg-slate-900 rounded-2xl flex items-center justify-center gap-1.5 px-4 overflow-hidden">
+                {audioLevels.map((lvl, idx) => (
+                  <div
+                    key={idx}
+                    className="w-1.5 bg-gradient-to-t from-emerald-500 to-amber-400 rounded-full transition-all duration-75"
+                    style={{ height: `${lvl}%` }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Recording Controls */}
+            <div className="flex items-center justify-center gap-3 flex-wrap pt-2">
+              {!isRecording ? (
+                <button
+                  onClick={handleStartRecording}
+                  className="py-3 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95"
+                >
+                  <Mic className="w-4 h-4" />
+                  <span>{recordedAudioUrl ? 'Record Again' : 'Start Recording'}</span>
+                </button>
+              ) : (
+                <>
+                  {!isPausedRecording ? (
+                    <button
+                      onClick={handlePauseRecording}
+                      className="py-2.5 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-semibold hover:bg-slate-300"
+                    >
+                      Pause
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleResumeRecording}
+                      className="py-2.5 px-4 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500"
+                    >
+                      Resume
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleStopRecording}
+                    className="py-3 px-6 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                    <span>Stop Recording</span>
+                  </button>
+                </>
+              )}
+
+              {/* Listen to My Recording */}
+              {recordedAudioUrl && !isRecording && (
+                <>
+                  <button
+                    onClick={handleToggleUserAudioPlay}
+                    className="py-3 px-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm font-bold flex items-center gap-2 hover:bg-emerald-100"
+                  >
+                    {isUserAudioPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                    <span>{isUserAudioPlaying ? 'Playing Voice...' : 'Listen to My Recording'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleDeleteRecording}
+                    title="Delete this recording"
+                    className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-600 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* STEP 6 TRIGGER: ANALYSE MY RECITATION */}
+            {recordedAudioUrl && !isRecording && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+                <button
+                  onClick={handleAnalyzeRecitation}
+                  disabled={isAnalyzing}
+                  className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 mx-auto disabled:opacity-50"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Analyzing Arabic Phonetics & Tajweed Rules...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 text-amber-300" />
+                      <span>Analyse My Recitation (Attempt #{practiceAttemptCount})</span>
+                    </>
+                  )}
+                </button>
+                <div className="text-[11px] text-slate-400 mt-2">
+                  Evaluates Noon Sakinah, Meem Sakinah, Madd duration, Qalqalah bounce, Ghunnah timing, and Makharij articulation.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* =================================================================
+              STEP 7: SHORT RECITATION REVIEW (FIRST RESULT)
+             ================================================================= */}
+          {analysisResult && (
+            <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 shadow-md space-y-5 animate-scale-up">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span>Your Recitation Review</span>
+                  </h3>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Surah {analysisResult.surahName} · Ayah {analysisResult.ayahNumber}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                    analysisResult.confidence === 'high' 
+                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                  }`}>
+                    {analysisResult.confidence.toUpperCase()} CONFIDENCE
+                  </span>
+                </div>
+              </div>
+
+              {/* Review Metrics Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center">
+                  <div className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">
+                    {analysisResult.wordsRecognizedCount}
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-emerald-900 dark:text-emerald-200">
+                    Words Recognized
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
+                  <div className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400 font-mono">
+                    {analysisResult.wordsNeedingAttentionCount}
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-amber-900 dark:text-amber-200">
+                    Words Needing Attention
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-center">
+                  <div className="text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-mono">
+                    {analysisResult.detectedIssues.filter(i => i.status === 'needs_improvement').length}
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-purple-900 dark:text-purple-200">
+                    Rules to Improve
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                  <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 font-mono">
+                    {analysisResult.recordingDurationSeconds.toFixed(1)}s
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    Pacing ({analysisResult.overallPacingStatus})
+                  </div>
+                </div>
+              </div>
+
+              {/* Short Review Findings */}
+              <div className="space-y-2 pt-1">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Key Recitation Findings:
+                </div>
+                <div className="space-y-1.5">
+                  {analysisResult.shortReviewSummary.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 text-xs text-slate-700 dark:text-slate-200 flex items-start gap-2 border border-slate-100 dark:border-slate-800"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PROMINENT BUTTON: STEP 8 - VIEW ALL ERRORS AND CORRECTIONS */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  onClick={() => setActiveView('report')}
+                  className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md"
+                >
+                  <span>VIEW ALL ERRORS AND CORRECTIONS ({analysisResult.detectedIssues.length})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <div className="text-[11px] text-slate-400">
+                  {analysisResult.apiDiagnostics?.notice}
+                </div>
+              </div>
             </div>
           )}
 
         </div>
       )}
 
-      {/* History Tab */}
-      {activeTab === 'history' && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Your Tajweed Practice Log & Improvement Track
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Every session where you recited and aligned your Tajweed with a Sheikh is recorded here.
-              </p>
-            </div>
-            <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded">
-              {practiceHistory.length} Sessions Logged
-            </span>
-          </div>
-
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {practiceHistory.map((rec) => (
-              <div key={rec.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{new Date(rec.timestamp).toLocaleDateString()}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>Surah {rec.surahName} (Ayah {rec.ayahNumber})</span>
-                    <span aria-hidden="true">·</span>
-                    <span>Sheikh {rec.reciterName}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 italic">
-                    "{rec.notes}"
-                  </p>
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span>Pacing: {rec.breakdown.pacingMatch}%</span>
-                    <span>Madd: {rec.breakdown.maddElongation}%</span>
-                    <span>Ghunnah: {rec.breakdown.ghunnahTiming}%</span>
-                    <span>Stop: {rec.breakdown.waqfStopTiming}%</span>
-                  </div>
-                </div>
-
-                <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
-                  <div className="text-right">
-                    <span className="text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{rec.alignmentScore}%</span>
-                    <span className="text-[11px] text-slate-400 block">Harmony</span>
-                  </div>
-                  <div className="flex items-center gap-0.5 text-amber-500">
-                    {Array.from({ length: rec.selfRating }).map((_, i) => (
-                      <Star key={i} className="w-3 h-3 fill-current" />
-                    ))}
-                  </div>
-                </div>
+      {/* =====================================================================
+          VIEW 2: DETAILED ERROR REPORT & PRACTICE CORRECTIONS (PART 2.F & 2.G)
+         ===================================================================== */}
+      {activeView === 'report' && analysisResult && (
+        <div className="space-y-6 animate-fade-in">
+          
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                  Detailed Tajweed Correction Report
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Surah {analysisResult.surahName} (Ayah {analysisResult.ayahNumber}) · Canonical Tajweed Standards
+                </p>
               </div>
-            ))}
+
+              <button
+                onClick={() => setActiveView('studio')}
+                className="py-2 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+              >
+                ← Return to Studio
+              </button>
+            </div>
+
+            {/* Status Legend (Three clearly distinguishable statuses) */}
+            <div className="flex items-center gap-3 flex-wrap text-xs font-semibold p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span className="text-[11px] text-slate-400">Status Legend:</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Correct (متقن)</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <span>Needs Improvement (يحتاج تدريب)</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300">
+                <HelpCircle className="w-3.5 h-3.5 text-sky-600" />
+                <span>Uncertain (غير مؤكد - أعد التسجيل)</span>
+              </span>
+            </div>
+
+            {/* List of Detailed Issues */}
+            <div className="space-y-4 pt-2">
+              {analysisResult.detectedIssues.map((issue, idx) => {
+                const isNeedsImprovement = issue.status === 'needs_improvement';
+                const isUncertain = issue.status === 'uncertain';
+
+                return (
+                  <div
+                    key={issue.id || idx}
+                    className={`p-5 rounded-3xl border transition-all space-y-3 ${
+                      isNeedsImprovement
+                        ? 'border-amber-400/80 bg-amber-50/20 dark:bg-amber-950/20'
+                        : isUncertain
+                        ? 'border-sky-400/80 bg-sky-50/20 dark:bg-sky-950/20'
+                        : 'border-emerald-500/50 bg-emerald-50/10 dark:bg-emerald-950/10'
+                    }`}
+                  >
+                    {/* Header: Word & Rule */}
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                      <div className="flex items-center gap-3">
+                        <span className="font-arabic text-xl font-bold text-slate-900 dark:text-white px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+                          {issue.wordArabic}
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white">
+                            {issue.ruleName}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Category: {issue.category} · Ayah {issue.ayahNumber}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
+                        isNeedsImprovement
+                          ? 'bg-amber-500 text-slate-950'
+                          : isUncertain
+                          ? 'bg-sky-500 text-white'
+                          : 'bg-emerald-700 text-white'
+                      }`}>
+                        {isNeedsImprovement ? (
+                          <>
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Needs Improvement</span>
+                          </>
+                        ) : isUncertain ? (
+                          <>
+                            <HelpCircle className="w-3.5 h-3.5" />
+                            <span>Uncertain</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Correct</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Breakdown of the 9 required points */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 space-y-1">
+                        <span className="text-[10px] font-bold text-rose-600 uppercase block">
+                          3. Detected Problem & What Was Done Incorrectly
+                        </span>
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">{issue.detectedProblem}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px]">{issue.whatWasDoneIncorrectly}</div>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 space-y-1">
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase block">
+                          6. How to Pronounce It Correctly
+                        </span>
+                        <div className="font-semibold text-emerald-800 dark:text-emerald-300">{issue.howToPronounceCorrectly}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px]">{issue.simpleExplanation}</div>
+                      </div>
+                    </div>
+
+                    {/* Practice Exercise & Actions */}
+                    <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+                      <div className="text-xs text-slate-600 dark:text-slate-300">
+                        <strong className="text-amber-700 dark:text-amber-400">Practice Tip:</strong> {issue.practiceExercise}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => playReferenceAyah(selectedAyahNumber)}
+                          className="py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>Hear Sheikh</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveHighlightedWordIdx(issue.wordIndex);
+                            setActiveView('studio');
+                          }}
+                          className="py-1.5 px-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold flex items-center gap-1.5"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Practice Word</span>
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
         </div>
       )}
 
-      {/* Rules Guide Tab */}
-      {activeTab === 'rules' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {TAJWEED_RULES.map((rule) => (
-            <div key={rule.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{rule.category}</span>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{rule.name}</h3>
-                </div>
-                <span className="font-arabic text-xl font-bold text-emerald-800 dark:text-emerald-400">{rule.arabicName}</span>
+      {/* =====================================================================
+          VIEW 3: PRACTICE HISTORY & PROGRESS
+         ===================================================================== */}
+      {activeView === 'history' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <History className="w-6 h-6 text-indigo-500" />
+                  <span>Tajweed Recitation Practice History</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Privately saved recitation evaluations and improvement logs
+                </p>
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                {rule.definition}
-              </p>
+              <button
+                onClick={() => setActiveView('studio')}
+                className="py-2 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+              >
+                ← Back to Studio
+              </button>
+            </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded text-xs text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/80">
-                <strong>Timing & Measure:</strong> {rule.timingRule}
+            {savedSessions.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
+                <div className="text-xs font-bold text-slate-600 dark:text-slate-300">No practice sessions logged yet.</div>
+                <div className="text-[11px] text-slate-400">Select any Ayah in the Studio, record your recitation, and analyze your progress!</div>
               </div>
+            ) : (
+              <div className="space-y-3">
+                {savedSessions.map((sess) => (
+                  <div
+                    key={sess.id}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 flex-wrap"
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">
+                        Surah {sess.surahName} · Ayah {sess.ayahNumber}
+                      </div>
+                      <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                        <span>{new Date(sess.date).toLocaleDateString()}</span>
+                        <span>·</span>
+                        <span>{sess.durationSeconds.toFixed(1)}s recorded</span>
+                        <span>·</span>
+                        <span className="capitalize">{sess.confidence} confidence</span>
+                      </div>
+                    </div>
 
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Example:</span>
-                {rule.examples.map((ex, i) => (
-                  <div key={i} className="bg-emerald-50/50 dark:bg-emerald-950/40 p-2 rounded mb-1 text-slate-800 dark:text-slate-200">
-                    <span className="font-arabic text-base font-semibold text-emerald-950 dark:text-emerald-300 block">{ex.verse}</span>
-                    <span className="text-[11px] text-slate-600 dark:text-slate-400">{ex.explanation}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                          {sess.wordsRecognizedCount} words recognized
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {sess.mistakesCount === 0 ? '✓ Flawless recitation' : `${sess.mistakesCount} rule corrections`}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedSurahId(sess.surahId);
+                          setSelectedAyahNumber(sess.ayahNumber);
+                          setActiveView('studio');
+                        }}
+                        className="py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold"
+                      >
+                        Practice Again
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       )}
 
