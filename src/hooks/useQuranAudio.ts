@@ -259,14 +259,40 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
   }, [isMuted, volume]);
 
   const nextSurah = useCallback(() => {
+    const list = currentReciter.availableSurahs && currentReciter.availableSurahs.length > 0 && currentReciter.availableSurahs.length < 114
+      ? currentReciter.availableSurahs
+      : null;
+    if (list) {
+      const curIdx = list.indexOf(currentSurahId);
+      if (curIdx >= 0 && curIdx < list.length - 1) {
+        onSurahChange(list[curIdx + 1]);
+        return;
+      } else if (curIdx >= list.length - 1) {
+        onSurahChange(list[0]);
+        return;
+      }
+    }
     const next = currentSurahId < 114 ? currentSurahId + 1 : 1;
     onSurahChange(next);
-  }, [currentSurahId, onSurahChange]);
+  }, [currentReciter, currentSurahId, onSurahChange]);
 
   const prevSurah = useCallback(() => {
+    const list = currentReciter.availableSurahs && currentReciter.availableSurahs.length > 0 && currentReciter.availableSurahs.length < 114
+      ? currentReciter.availableSurahs
+      : null;
+    if (list) {
+      const curIdx = list.indexOf(currentSurahId);
+      if (curIdx > 0) {
+        onSurahChange(list[curIdx - 1]);
+        return;
+      } else if (curIdx === 0) {
+        onSurahChange(list[list.length - 1]);
+        return;
+      }
+    }
     const prev = currentSurahId > 1 ? currentSurahId - 1 : 114;
     onSurahChange(prev);
-  }, [currentSurahId, onSurahChange]);
+  }, [currentReciter, currentSurahId, onSurahChange]);
 
   // Dynamic verse and page synchronization
   const activeSync = getCurrentlyRecitingAyah(currentSurahId, currentTime, duration);

@@ -16,20 +16,36 @@ export type TajweedRuleCategory =
 
 export type TajweedIssueStatus = 'correct' | 'needs_improvement' | 'uncertain';
 
+export type TajweedIssueType = 
+  | 'mispronounced_letter'
+  | 'omitted_sound'
+  | 'extra_sound'
+  | 'unclear_pronunciation'
+  | 'tajweed_rule'
+  | 'madd_prolongation'
+  | 'ghunnah_timing'
+  | 'qalqalah_echo'
+  | 'tafkhim_tarqiq'
+  | 'stop_point';
+
 export interface TajweedIssue {
   id: string;
   wordArabic: string;
   wordIndex: number;
+  wordPositionInAyah: string; // e.g. "Word 2 of 4"
+  totalWordsInAyah: number;
   ayahNumber: number;
   ruleId: string;
   ruleName: string;
   category: TajweedRuleCategory;
+  issueType: TajweedIssueType;
   status: TajweedIssueStatus;
   detectedProblem: string;
   whatWasDoneIncorrectly: string;
   howToPronounceCorrectly: string;
   simpleExplanation: string;
   practiceExercise: string;
+  wordAudioUrl?: string; // Authentic single-word audio from Quran CDN
   referenceAudioSample?: string;
 }
 
@@ -286,6 +302,19 @@ export function extractTajweedPointsFromAyah(textArabic: string, ayahNumber: num
 }
 
 /**
+ * Authentic single-word audio URL from Quran.com CDN
+ * @param surahId 1-114
+ * @param ayahNumber 1-based ayah number in surah
+ * @param wordIndex1Based 1-based word index within the ayah
+ */
+export function getWordAudioUrl(surahId: number, ayahNumber: number, wordIndex1Based: number): string {
+  const s = surahId.toString().padStart(3, '0');
+  const a = ayahNumber.toString().padStart(3, '0');
+  const w = wordIndex1Based.toString().padStart(3, '0');
+  return `https://audio.qurancdn.com/wbw/${s}_${a}_${w}.mp3`;
+}
+
+/**
  * Benchmark Ayah Durations (Standard Murattal Sheikh timing in seconds)
  */
 export function getBenchmarkDurationForAyah(surahId: number, ayahNumber: number, wordCount: number): number {
@@ -361,16 +390,20 @@ export function evaluateRecitationAlgorithmic(params: {
           id: 'err_audio_short',
           wordArabic: words[0] || 'البداية',
           wordIndex: 0,
+          wordPositionInAyah: `Word 1 of ${totalWords}`,
+          totalWordsInAyah: totalWords,
           ayahNumber,
           ruleId: 'audio_level',
           ruleName: 'Recording Duration & Audio Volume',
           category: 'Makharij & Sifaat',
+          issueType: 'unclear_pronunciation',
           status: 'uncertain',
           detectedProblem: 'Unable to verify this pronunciation. Please record again.',
           whatWasDoneIncorrectly: 'Audio signal lasted less than 1 second, preventing phonetic analysis.',
           howToPronounceCorrectly: 'Take a calm breath, recite the complete Ayah at steady Murattal pace, and tap Stop when finished.',
           simpleExplanation: 'Authentic Tajweed analysis requires listening to your complete recitation from start to finish.',
-          practiceExercise: 'Listen once to Sheikh Al-Husary, then tap Start Recording.'
+          practiceExercise: 'Listen once to Sheikh Al-Husary, then tap Start Recording.',
+          wordAudioUrl: getWordAudioUrl(surahId, ayahNumber, 1)
         }
       ],
       recordingDurationSeconds,
@@ -401,6 +434,17 @@ export function evaluateRecitationAlgorithmic(params: {
   } else {
     shortReviewSummary.push(`Recitation pacing is harmonious (${recordingDurationSeconds.toFixed(1)}s, matching benchmark Murattal tempo).`);
   }
+
+  // Helper to determine issueType from category
+  const mapCategoryToIssueType = (cat: TajweedRuleCategory, ruleId: string): TajweedIssueType => {
+    if (cat === 'Madd') return 'madd_prolongation';
+    if (cat === 'Ghunnah') return 'ghunnah_timing';
+    if (cat === 'Qalqalah') return 'qalqalah_echo';
+    if (cat === 'Tafkhim & Tarqiq') return 'tafkhim_tarqiq';
+    if (cat === 'Waqf & Ibtida') return 'stop_point';
+    if (ruleId.includes('makhraj') || cat === 'Makharij & Sifaat') return 'mispronounced_letter';
+    return 'tajweed_rule';
+  };
 
   // Analyze each Tajweed point
   points.forEach((point, idx) => {
@@ -438,20 +482,26 @@ export function evaluateRecitationAlgorithmic(params: {
       shortReviewSummary.push(`${point.ruleName}: Needs improvement (${point.correctGuidance.slice(0, 50)}...)`);
     }
 
+    const wordIndex1Based = Math.min(totalWords, Math.max(1, point.wordIndex + 1));
+
     detectedIssues.push({
       id: `issue_${point.ruleId}_${idx}`,
       wordArabic: point.wordArabic,
       wordIndex: point.wordIndex,
+      wordPositionInAyah: `Word ${wordIndex1Based} of ${totalWords}`,
+      totalWordsInAyah: totalWords,
       ayahNumber,
       ruleId: point.ruleId,
       ruleName: point.ruleName,
       category: point.category,
+      issueType: mapCategoryToIssueType(point.category, point.ruleId),
       status,
       detectedProblem,
       whatWasDoneIncorrectly,
       howToPronounceCorrectly: point.correctGuidance,
       simpleExplanation: point.explanation,
-      practiceExercise: point.practiceTip
+      practiceExercise: point.practiceTip,
+      wordAudioUrl: getWordAudioUrl(surahId, ayahNumber, wordIndex1Based)
     });
   });
 

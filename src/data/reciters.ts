@@ -807,7 +807,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Warsh 'an Nafi'",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/abdelaziz-sheim/r1/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [1, 18, 19, 31, 49, 50, 51, 55, 56, 66, 67, 71, 72, 75, 76, 82],
     bio: 'Popular young Algerian Qari whose smooth, melodic Warsh recitation has inspired millions of listeners across the Sahel and North Africa.',
     featured: false,
     verificationStatus: 'verified',
@@ -1500,7 +1500,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Shu'bah",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/muftah-saltani/r4/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: Array.from({ length: 77 }, (_, i) => i + 1),
     bio: 'Scholarly complete recitation in the Riwayah of Shu\'bah from \'Asim with strict phonetic adherence.',
     featured: false,
     verificationStatus: 'verified',
@@ -1561,7 +1561,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Khalaf from Hamzah",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-deeban/r11/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [94, 97, 101, 107, 108, 109],
     bio: 'Canonical reading of Khalaf from Hamzah, recorded with full adherence to the Sakt and Hamzat handling rulings.',
     featured: false,
     verificationStatus: 'verified',
@@ -1584,7 +1584,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ad-Duri from al-Kisa'i",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/mishary-alafasy/r2/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [12, 14, 25, 87, 97, 99],
     bio: 'Kuwaiti Sheikh Mishary Rashid Alafasy reciting the canonical Riwayah of Ad-Duri from Imam Al-Kisa\'i al-Kufi, highlighting the extensive Imalah rules.',
     featured: true,
     verificationStatus: 'verified',
@@ -1605,7 +1605,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ad-Duri from al-Kisa'i",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/okasha-kameny/r1/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: [17, ...Array.from({ length: 37 }, (_, i) => i + 78)],
     bio: 'African master Qari Okasha Kameny rendering the Riwayah of Ad-Duri from Al-Kisa\'i with resonant vocal agility and soulful African intonation.',
     featured: true,
     verificationStatus: 'verified',
@@ -1727,7 +1727,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Ruways",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-masarawi/r2/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: Array.from({ length: 64 }, (_, i) => i + 51),
     bio: 'Former Sheikh al-Umum of Egyptian Reciters (Shaykh Umūm al-Maqāri\' al-Misriyyah). His authoritative recitation of Ruways from Ya\'qub al-Hadrami is an international academic reference.',
     featured: true,
     verificationStatus: 'verified',
@@ -1769,7 +1769,7 @@ export const RECITERS: Reciter[] = [
     riwayah: "Rawh",
     style: 'Murattal',
     serverUrl: 'https://cdn.mp3quran.net/audio/ahmad-masarawi/r2/',
-    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    availableSurahs: Array.from({ length: 64 }, (_, i) => i + 51),
     bio: 'Authoritative recitation in the Riwayah of Rawh from Ya\'qub al-Hadrami by Dr. Ahmad Issa Al-Maasaraawi, former Chief of Egyptian Reciters.',
     featured: true,
     verificationStatus: 'verified',
@@ -1794,6 +1794,120 @@ export const RECITERS: Reciter[] = [
     verificationStatus: 'verified',
     verifiedAudioSource: 'mp3quran.net CDN',
     hasAudio: true
+  },
+  // ==========================================
+  // RIWAYAH: KHALLAD 'AN HAMZAH (خلاد عن حمزة)
+  // ==========================================
+  {
+    id: 'muftah-saltany-khallad',
+    name: 'Muftah Alsaltany (Khallad from Hamzah)',
+    alternativeSpellings: ['Moftah Elsaltany Khallad', 'Muftah Saltani Khallad'],
+    arabicName: 'مفتاح السلطني (خلاد عن حمزة)',
+    country: 'Libya',
+    countryCode: 'LY',
+    qiraahId: 'hamzah',
+    riwayahId: 'khallad',
+    riwayah: "Khallad 'an Hamzah",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/alfi46977697967644646967469602_201705/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Renowned Libyan scholar and reciter who mastered all Ten Qiraat. Master recording of Khallad from Hamzah through the Tariq of Al-Kamil.',
+    featured: true,
+    verificationStatus: 'verified',
+    verifiedAudioSource: 'Archive.org Verified Complete Studio Archive (114 Surahs)',
+    hasAudio: true
+  },
+
+  // ==========================================
+  // RIWAYAH: ABU AL-HARITH 'AN AL-KISA\'I (أبو الحارث عن الكسائي)
+  // ==========================================
+  {
+    id: 'yousef-noah-abu-harith',
+    name: 'Yousef Bin Noah Ahmad (Abu al-Harith)',
+    alternativeSpellings: ['Yousuf Nooh Abu Al-Harith', 'Youssef Noah'],
+    arabicName: 'يوسف بن نوح أحمد (أبو الحارث عن الكسائي)',
+    country: 'Yemen',
+    countryCode: 'YE',
+    qiraahId: 'kisai',
+    riwayahId: 'abu_al_harith',
+    riwayah: "Abu al-Harith 'an al-Kisa'i",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/YousefBinNoahAhmad_AbouElhareth/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Distinguished Qari specializing in the transmission of the Ten Mutawatir Qiraat. Complete 114 Surahs studio recording of Abu al-Harith.',
+    featured: true,
+    verificationStatus: 'verified',
+    verifiedAudioSource: 'Archive.org Official Complete 114 Surahs Studio Master',
+    hasAudio: true
+  },
+
+  // ==========================================
+  // RIWAYAH: IBN WARDAN 'AN ABI JA\'FAR (ابن وردان عن أبي جعفر)
+  // ==========================================
+  {
+    id: 'muftah-saltany-ibn-wardan',
+    name: 'Muftah Alsaltany (Ibn Wardan)',
+    alternativeSpellings: ['Moftah Elsaltany Ibn Wardan', 'Muftah Saltani Ibn Wardan'],
+    arabicName: 'مفتاح السلطني (ابن وردان عن أبي جعفر)',
+    country: 'Libya',
+    countryCode: 'LY',
+    qiraahId: 'abu_jafar',
+    riwayahId: 'ibn_wardan',
+    riwayah: "Ibn Wardan 'an Abī Ja'far",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/Alfirdwsiy14uyiuyioirtyeewrtyuyimnbvuioituyrtewrttuiuoiouiyuutyt/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Impeccable recording of the Madinan Qiraah of Abu Ja’far as narrated by Ibn Wardan, preserving historic vocalizations and Tashil.',
+    featured: true,
+    verificationStatus: 'verified',
+    verifiedAudioSource: 'Archive.org Complete 114 Surahs Master Archive',
+    hasAudio: true
+  },
+
+  // ==========================================
+  // RIWAYAH: ISHAQ AL-WARRAQ 'AN KHALAF (إسحاق الوراق عن خلف)
+  // ==========================================
+  {
+    id: 'yousef-noah-ishaq-warraq',
+    name: 'Yousef Bin Noah Ahmad (Ishaq al-Warraq)',
+    alternativeSpellings: ['Yousuf Nooh Ishaq Al-Warraq', 'Youssef Noah Ishaq'],
+    arabicName: 'يوسف بن نوح أحمد (إسحاق الوراق عن خلف العاشر)',
+    country: 'Yemen',
+    countryCode: 'YE',
+    qiraahId: 'khalaf_tenth',
+    riwayahId: 'ishaq_al_warraq',
+    riwayah: "Ishāq al-Warrāq 'an Khalaf",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/Ibn_Nouh_6_uP_bY_mUSLEm/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Rare complete studio recording of the Tenth Imam (Khalaf al-Bazzar) narrated by Ishaq al-Warraq, famous for rigorous Kufan Sakt.',
+    featured: true,
+    verificationStatus: 'verified',
+    verifiedAudioSource: 'Archive.org Official Complete 114 Surahs Collection',
+    hasAudio: true
+  },
+
+  // ==========================================
+  // RIWAYAH: IDRIS AL-HADDAD 'AN KHALAF (إدريس الحداد عن خلف)
+  // ==========================================
+  {
+    id: 'yousef-noah-idris-haddad',
+    name: 'Yousef Bin Noah Ahmad (Idris al-Haddad)',
+    alternativeSpellings: ['Yousuf Nooh Idris Al-Haddad', 'Youssef Noah Idris'],
+    arabicName: 'يوسف بن نوح أحمد (إدريس الحداد عن خلف العاشر)',
+    country: 'Yemen',
+    countryCode: 'YE',
+    qiraahId: 'khalaf_tenth',
+    riwayahId: 'idris_al_haddad',
+    riwayah: "Idrīs al-Haddād 'an Khalaf",
+    style: 'Murattal',
+    serverUrl: 'https://archive.org/download/Edrees3n35683658563356835683568Khalaf001002/',
+    availableSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+    bio: 'Complete canonical recording of the Tenth Qiraah narrated by Idris al-Haddad, characterized by phonological precision and classical eloquence.',
+    featured: true,
+    verificationStatus: 'verified',
+    verifiedAudioSource: 'Archive.org Official Complete 114 Surahs Collection',
+    hasAudio: true
   }
 ];
 
@@ -1808,7 +1922,19 @@ export function getSurahAudioUrl(reciter: Reciter, surahId: number): string {
 
   const paddedId = surahId.toString().padStart(3, '0');
 
-  // Custom filename pattern for Qaari Abdullah Bappah (Jameel Bappayo)
+  // Custom filename patterns for specific canonical archives
+  if (reciter.id === 'yousef-noah-ishaq-warraq') {
+    if (surahId === 1 || surahId === 2) {
+      return 'https://archive.org/download/Ibn_Nouh_6_uP_bY_mUSLEm/Eshaq-3n-Khalaf_001-002.mp3';
+    }
+    return `https://archive.org/download/Ibn_Nouh_6_uP_bY_mUSLEm/Eshaq-3n-Khalaf_${paddedId}.mp3`;
+  }
+  if (reciter.id === 'yousef-noah-idris-haddad') {
+    if (surahId === 1 || surahId === 2) {
+      return 'https://archive.org/download/Edrees3n35683658563356835683568Khalaf001002/Edrees-3n-Khalaf_001-002.mp3';
+    }
+    return `https://archive.org/download/Edrees3n35683658563356835683568Khalaf001002/Edrees-3n-Khalaf_${paddedId}.mp3`;
+  }
   if (reciter.id === 'abdullah-bappah') {
     return `https://archive.org/download/Complete_Quran_Qaari_Jameel_Bappayo/${paddedId}%20Qaari%20Jameel%20Bappayo%20(Hafs).mp3`;
   }

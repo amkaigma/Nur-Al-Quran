@@ -26,7 +26,8 @@ import {
   Info,
   ShieldCheck,
   Flame,
-  VolumeX
+  VolumeX,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Reciter, Ayah, SurahMeta } from '../types/quran';
@@ -35,6 +36,7 @@ import { fetchSurahVerses } from '../services/quranApi';
 import { 
   VERSE_BY_VERSE_RECITERS, 
   getVerseAudioUrl, 
+  getWordAudioUrl,
   RecitationAnalysisResult, 
   TajweedIssue,
   extractTajweedPointsFromAyah,
@@ -103,6 +105,21 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(20).fill(8));
   const [isUserAudioPlaying, setIsUserAudioPlaying] = useState<boolean>(false);
   const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  // INDIVIDUAL WORD AUDIO PLAYBACK & TEACHER CORRECTION
+  const [playingWordAudioUrl, setPlayingWordAudioUrl] = useState<string | null>(null);
+  const wordAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  // FOCUSED SINGLE-WORD PRACTICE WORKFLOW
+  const [wordPracticeTarget, setWordPracticeTarget] = useState<TajweedIssue | null>(null);
+  const [isWordRecording, setIsWordRecording] = useState<boolean>(false);
+  const [wordRecordingDuration, setWordRecordingDuration] = useState<number>(0);
+  const [wordRecordedAudioUrl, setWordRecordedAudioUrl] = useState<string | null>(null);
+  const [isWordUserAudioPlaying, setIsWordUserAudioPlaying] = useState<boolean>(false);
+  const wordMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const wordAudioChunksRef = useRef<Blob[]>([]);
+  const wordRecordingTimerRef = useRef<number | null>(null);
+  const wordUserAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // STEP 6, 7 & 8: RECITATION ANALYSIS & ERROR REPORTS
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -173,7 +190,16 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
         userAudioPlayerRef.current.pause();
         userAudioPlayerRef.current.src = '';
       }
+      if (wordAudioPlayerRef.current) {
+        wordAudioPlayerRef.current.pause();
+        wordAudioPlayerRef.current.src = '';
+      }
+      if (wordUserAudioPlayerRef.current) {
+        wordUserAudioPlayerRef.current.pause();
+        wordUserAudioPlayerRef.current.src = '';
+      }
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (wordRecordingTimerRef.current) clearInterval(wordRecordingTimerRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
@@ -422,7 +448,124 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
   };
 
   // =========================================================================
-  // STEP 6: ANALYSE MY RECITATION (GENUINE ANALYSIS PIPELINE)
+  // SINGLE-WORD AUDIO PLAYBACK & TEACHER CORRECTION (QURAN CDN)
+  // =========================================================================
+  const handleToggleWordAudio = (url?: string) => {
+    if (!url) return;
+    if (playingWordAudioUrl === url) {
+      if (wordAudioPlayerRef.current) {
+        wordAudioPlayerRef.current.pause();
+      }
+      setPlayingWordAudioUrl(null);
+      return;
+    }
+
+    if (!wordAudioPlayerRef.current) {
+      wordAudioPlayerRef.current = new Audio(url);
+    } else {
+      wordAudioPlayerRef.current.src = url;
+    }
+    const audio = wordAudioPlayerRef.current;
+    audio.onended = () => setPlayingWordAudioUrl(null);
+    audio.onerror = () => setPlayingWordAudioUrl(null);
+    audio.play().then(() => {
+      setPlayingWordAudioUrl(url);
+    }).catch(() => {
+      setPlayingWordAudioUrl(null);
+    });
+  };
+
+  // =========================================================================
+  // FOCUSED SINGLE-WORD PRACTICE RECORDER
+  // =========================================================================
+  const handleOpenWordPractice = (issue: TajweedIssue) => {
+    setWordPracticeTarget(issue);
+    setWordRecordedAudioUrl(null);
+    setWordRecordingDuration(0);
+    setIsWordRecording(false);
+    setIsWordUserAudioPlaying(false);
+  };
+
+  const handleStartWordRecording = async () => {
+    wordAudioChunksRef.current = [];
+    setWordRecordedAudioUrl(null);
+    setWordRecordingDuration(0);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      wordMediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) wordAudioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(wordAudioChunksRef.current, { type: mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setWordRecordedAudioUrl(url);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      mediaRecorder.start(100);
+      setIsWordRecording(true);
+      const start = Date.now();
+      wordRecordingTimerRef.current = window.setInterval(() => {
+        setWordRecordingDuration((Date.now() - start) / 1000);
+      }, 100);
+    } catch (err) {
+      console.warn('Word recording mic error:', err);
+    }
+  };
+
+  const handleStopWordRecording = () => {
+    if (wordRecordingTimerRef.current) {
+      clearInterval(wordRecordingTimerRef.current);
+      wordRecordingTimerRef.current = null;
+    }
+    if (wordMediaRecorderRef.current && wordMediaRecorderRef.current.state !== 'inactive') {
+      wordMediaRecorderRef.current.stop();
+    }
+    setIsWordRecording(false);
+  };
+
+  const handleToggleUserWordAudio = () => {
+    if (!wordRecordedAudioUrl) return;
+    if (isWordUserAudioPlaying) {
+      if (wordUserAudioPlayerRef.current) wordUserAudioPlayerRef.current.pause();
+      setIsWordUserAudioPlaying(false);
+    } else {
+      if (!wordUserAudioPlayerRef.current) {
+        wordUserAudioPlayerRef.current = new Audio(wordRecordedAudioUrl);
+      } else {
+        wordUserAudioPlayerRef.current.src = wordRecordedAudioUrl;
+      }
+      const audio = wordUserAudioPlayerRef.current;
+      audio.onended = () => setIsWordUserAudioPlaying(false);
+      audio.play().then(() => setIsWordUserAudioPlaying(true)).catch(() => setIsWordUserAudioPlaying(false));
+    }
+  };
+
+  const handlePracticeAgainWholeAyah = () => {
+    if (analysisResult) {
+      setPreviousAttemptAnalysis(analysisResult);
+    }
+    setRecordedAudioUrl(null);
+    setRecordedBlob(null);
+    setRecordedBase64(null);
+    setRecordingDuration(0);
+    setAnalysisResult(null);
+
+    // Smooth scroll to recorder card
+    setTimeout(() => {
+      const el = document.getElementById('step-4-recorder-card');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
+
+  // =========================================================================
+  // STEP 5: CHECK MY RECITATION WITH TEACHER
   // =========================================================================
   const handleAnalyzeRecitation = async () => {
     if (!currentAyahObj) return;
@@ -586,13 +729,13 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
         <div className="space-y-6">
 
           {/* =================================================================
-              STEP 1 & 2: AYAH SELECTION SYSTEM
+              STEP 1 & 2: SURAH AND AYAH SELECTION
              ================================================================= */}
           <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <BookOpen className="w-4 h-4 text-emerald-600" />
-                <span>Step 1 & 2: Select Exact Surah & Ayah</span>
+                <span>1. Choose a Surah & 2. Choose an Ayah</span>
               </div>
 
               {/* Selection Mode Selector: Single Ayah, Range, or Full Surah */}
@@ -632,7 +775,7 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
               {/* Surah Dropdown Selector with Instant Search */}
               <div className="sm:col-span-6 relative">
                 <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  1. Choose Surah (1 to 114):
+                  1. Choose a Surah (1 to 114):
                 </label>
                 <button
                   onClick={() => setIsSurahDropdownOpen(prev => !prev)}
@@ -696,7 +839,7 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
               {selectionMode === 'single' && (
                 <div className="sm:col-span-6">
                   <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                    2. Select Exact Ayah (Total: {selectedSurahMeta.versesCount} Ayat):
+                    2. Choose an Ayah (Total: {selectedSurahMeta.versesCount} Ayat):
                   </label>
                   <select
                     value={selectedAyahNumber}
@@ -775,13 +918,13 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
           </div>
 
           {/* =================================================================
-              STEP 3: REFERENCE AUDIO & RECITER SELECTOR
+              STEP 3: LISTEN AND LEARN (REFERENCE AUDIO & RECITER SELECTOR)
              ================================================================= */}
           <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <Volume2 className="w-4 h-4 text-emerald-600" />
-                <span>Step 3: Listen to Reference Reciter (Verse-Level Audio)</span>
+                <span>3. Listen and Learn (Single-Click Reference Playback)</span>
               </div>
 
               {/* Master Benchmark Reciter Dropdown */}
@@ -869,12 +1012,12 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
           </div>
 
           {/* =================================================================
-              STEP 4: ARABIC TEXT OF THE SELECTED AYAH
+              ARABIC TEXT OF THE SELECTED AYAH (INTERACTIVE WORD-BY-WORD AUDIO)
              ================================================================= */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 text-center">
             <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">
               <span className="font-semibold">Uthmani Text · Surah {selectedSurahMeta.nameEnglish} ({selectedSurahId}:{selectedAyahNumber})</span>
-              <span>Canonical Hafs / Riwayah Text</span>
+              <span className="text-[11px]">Click any word to hear Sheikh's pronunciation</span>
             </div>
 
             {isLoadingAyahs ? (
@@ -888,23 +1031,38 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
                   return (
                     <div key={ayah.numberInSurah} className="space-y-3 py-2">
                       <div 
-                        className="font-arabic text-2xl sm:text-3xl leading-[2.4] text-slate-900 dark:text-white text-right dir-rtl select-text"
+                        className="font-arabic text-2xl sm:text-3xl leading-[2.5] text-slate-900 dark:text-white text-right dir-rtl select-text"
                         dir="rtl"
                       >
                         {words.map((w, wIdx) => {
+                          const wordIdx1 = wIdx + 1;
+                          const wordAudioUrl = getWordAudioUrl(selectedSurahId, ayah.numberInSurah, wordIdx1);
+                          const isWordPlaying = playingWordAudioUrl === wordAudioUrl;
+                          const hasIssue = analysisResult?.detectedIssues.find(i => i.wordIndex === wIdx && i.status === 'needs_improvement');
                           const isHighlighted = activeHighlightedWordIdx === wIdx;
+
                           return (
                             <span 
                               key={wIdx} 
-                              className={`inline-block px-1.5 py-0.5 rounded-lg transition-all mx-0.5 cursor-pointer ${
-                                isHighlighted
+                              className={`inline-flex flex-col items-center px-2 py-1 rounded-xl transition-all mx-1 cursor-pointer select-none group relative ${
+                                isWordPlaying
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/60 ring-2 ring-emerald-500 scale-105'
+                                  : hasIssue
+                                  ? 'bg-amber-100/70 dark:bg-amber-950/50 border border-amber-400/80 text-amber-900 dark:text-amber-200'
+                                  : isHighlighted
                                   ? 'bg-amber-300 dark:bg-amber-500 text-slate-950 font-bold scale-105 shadow-sm'
                                   : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                               }`}
-                              onClick={() => setActiveHighlightedWordIdx(wIdx === activeHighlightedWordIdx ? null : wIdx)}
-                              title={`Word ${wIdx + 1}: ${w}`}
+                              onClick={() => {
+                                setActiveHighlightedWordIdx(wIdx === activeHighlightedWordIdx ? null : wIdx);
+                                handleToggleWordAudio(wordAudioUrl);
+                              }}
+                              title={`Word ${wordIdx1}: Click to listen`}
                             >
-                              {w}
+                              <span>{w}</span>
+                              <span className="text-[9px] font-sans font-normal opacity-60 group-hover:opacity-100 text-slate-400">
+                                {isWordPlaying ? '🔊' : `${wordIdx1}`}
+                              </span>
                             </span>
                           );
                         })}
@@ -926,13 +1084,13 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
           </div>
 
           {/* =================================================================
-              STEP 5: RECORD MY OWN RECITATION
+              STEP 4: RECORD MY RECITATION
              ================================================================= */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div id="step-4-recorder-card" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <Mic className="w-4 h-4 text-rose-500" />
-                <span>Step 5: Record Your Voice Reciting This Ayah</span>
+                <span>4. Record My Recitation</span>
               </div>
 
               {recordingDuration > 0 && (
@@ -1027,51 +1185,55 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
               )}
             </div>
 
-            {/* STEP 6 TRIGGER: ANALYSE MY RECITATION */}
+            {/* =================================================================
+                STEP 5: CHECK MY RECITATION WITH TEACHER
+               ================================================================= */}
             {recordedAudioUrl && !isRecording && (
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
                 <button
                   onClick={handleAnalyzeRecitation}
                   disabled={isAnalyzing}
-                  className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 mx-auto disabled:opacity-50"
+                  className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 mx-auto disabled:opacity-50 active:scale-98"
                 >
                   {isAnalyzing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analyzing Arabic Phonetics & Tajweed Rules...</span>
+                      <span>Checking Your Recitation with Teacher...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5 text-amber-300" />
-                      <span>Analyse My Recitation (Attempt #{practiceAttemptCount})</span>
+                      <span>Check My Recitation with Teacher (Attempt #{practiceAttemptCount})</span>
                     </>
                   )}
                 </button>
                 <div className="text-[11px] text-slate-400 mt-2">
-                  Evaluates Noon Sakinah, Meem Sakinah, Madd duration, Qalqalah bounce, Ghunnah timing, and Makharij articulation.
+                  Checks your pronunciation, Makharij articulation, Madd prolongation, Ghunnah, and Tajweed rules.
                 </div>
               </div>
             )}
           </div>
 
           {/* =================================================================
-              STEP 7: SHORT RECITATION REVIEW (FIRST RESULT)
+              STEP 6: MY MISTAKES & HEAR THE CORRECTION
              ================================================================= */}
           {analysisResult && (
-            <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 shadow-md space-y-5 animate-scale-up">
+            <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 shadow-md space-y-6 animate-scale-up">
+              
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-lg flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span>Your Recitation Review</span>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-lg sm:text-xl flex items-center gap-2">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                    <span>6. My Mistakes & Hear the Correction</span>
                   </h3>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Surah {analysisResult.surahName} · Ayah {analysisResult.ayahNumber}
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Surah {analysisResult.surahName} · Ayah {analysisResult.ayahNumber} · Attempt #{practiceAttemptCount}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                  <span className={`text-xs px-3 py-1 rounded-full font-bold ${
                     analysisResult.confidence === 'high' 
                       ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                       : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
@@ -1080,6 +1242,52 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* ATTEMPT 1 VS ATTEMPT 2 SIDE-BY-SIDE COMPARISON (IF PREVIOUS ATTEMPT EXISTS) */}
+              {previousAttemptAnalysis && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
+                    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>Progress Comparison: Attempt #{practiceAttemptCount - 1} vs Attempt #{practiceAttemptCount}</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400">Side-by-Side Review</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Attempt #{practiceAttemptCount - 1}</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                        {previousAttemptAnalysis.wordsNeedingAttentionCount === 0
+                          ? 'Flawless Recitation'
+                          : `${previousAttemptAnalysis.wordsNeedingAttentionCount} words needed attention`}
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        {previousAttemptAnalysis.recordingDurationSeconds.toFixed(1)}s · {previousAttemptAnalysis.overallPacingStatus}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800">
+                      <div className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-bold">Attempt #{practiceAttemptCount} (Current)</div>
+                      <div className="font-bold text-emerald-800 dark:text-emerald-200 mt-0.5">
+                        {analysisResult.wordsNeedingAttentionCount === 0
+                          ? '✓ All words accurate!'
+                          : `${analysisResult.wordsNeedingAttentionCount} words need attention`}
+                      </div>
+                      <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                        {analysisResult.recordingDurationSeconds.toFixed(1)}s · {analysisResult.overallPacingStatus}
+                      </div>
+                    </div>
+                  </div>
+
+                  {analysisResult.wordsNeedingAttentionCount < previousAttemptAnalysis.wordsNeedingAttentionCount && (
+                    <div className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 pt-1">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Great improvement! You reduced mistakes from {previousAttemptAnalysis.wordsNeedingAttentionCount} to {analysisResult.wordsNeedingAttentionCount}!</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Review Metrics Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1120,41 +1328,338 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
                 </div>
               </div>
 
-              {/* Short Review Findings */}
-              <div className="space-y-2 pt-1">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                  Key Recitation Findings:
-                </div>
-                <div className="space-y-1.5">
-                  {analysisResult.shortReviewSummary.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 text-xs text-slate-700 dark:text-slate-200 flex items-start gap-2 border border-slate-100 dark:border-slate-800"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* INTERACTIVE WORD-BY-WORD AYAH STRIP WITH STATUS BADGES */}
+              {currentAyahObj && (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <span>Word-by-Word Recitation Accuracy (Tap any word to listen):</span>
+                    <span className="text-[11px] text-slate-400">Ayah {currentAyahObj.numberInSurah}</span>
+                  </div>
 
-              {/* PROMINENT BUTTON: STEP 8 - VIEW ALL ERRORS AND CORRECTIONS */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-center gap-2 dir-rtl" dir="rtl">
+                    {currentAyahObj.textArabic.trim().split(/\s+/).map((word, wIdx) => {
+                      const wordIdx1 = wIdx + 1;
+                      const wordAudioUrl = getWordAudioUrl(selectedSurahId, selectedAyahNumber, wordIdx1);
+                      const isWordPlaying = playingWordAudioUrl === wordAudioUrl;
+                      const issue = analysisResult.detectedIssues.find(i => i.wordIndex === wIdx && i.status === 'needs_improvement');
+                      const hasMistake = !!issue;
+
+                      return (
+                        <div
+                          key={wIdx}
+                          onClick={() => handleToggleWordAudio(wordAudioUrl)}
+                          className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center select-none shadow-xs group ${
+                            isWordPlaying
+                              ? 'bg-emerald-100 dark:bg-emerald-900/60 ring-2 ring-emerald-500 scale-105'
+                              : hasMistake
+                              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 hover:border-amber-500'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                          }`}
+                          title={`Word ${wordIdx1}: ${word} - Tap to hear Sheikh`}
+                        >
+                          <span className="font-arabic text-xl font-bold text-slate-900 dark:text-white">
+                            {word}
+                          </span>
+
+                          <div className="flex items-center gap-1 mt-1 text-[10px] font-sans font-semibold">
+                            {hasMistake ? (
+                              <span className="text-amber-700 dark:text-amber-300 flex items-center gap-0.5">
+                                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                <span>Needs Attention</span>
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5">
+                                <Check className="w-3 h-3 text-emerald-500" />
+                                <span>Correct</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-[9px] text-slate-400 mt-0.5 font-sans">
+                            {isWordPlaying ? '🔊 Playing' : `Word ${wordIdx1}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* CELEBRATION IF ZERO MISTAKES */}
+              {analysisResult.wordsNeedingAttentionCount === 0 && (
+                <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto text-xl shadow-md">
+                    ✓
+                  </div>
+                  <h4 className="font-extrabold text-emerald-900 dark:text-emerald-200 text-base">
+                    Masha'Allah! Flawless Recitation
+                  </h4>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 max-w-md mx-auto">
+                    All words recognized clearly, pacing matches Murattal benchmarks, and no Tajweed rule infractions were found!
+                  </p>
+                </div>
+              )}
+
+              {/* STRUCTURED ERROR CARDS FOR WORDS THAT NEED ATTENTION */}
+              {analysisResult.detectedIssues.filter(i => i.status === 'needs_improvement' || i.status === 'uncertain').length > 0 && (
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <span>Words That Need Attention & Specific Corrections:</span>
+                    <span className="text-amber-600 font-semibold">
+                      {analysisResult.detectedIssues.filter(i => i.status === 'needs_improvement').length} issues detected
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {analysisResult.detectedIssues
+                      .filter(issue => issue.status === 'needs_improvement' || issue.status === 'uncertain')
+                      .map((issue, idx) => {
+                        const wordAudioUrl = issue.wordAudioUrl || getWordAudioUrl(selectedSurahId, selectedAyahNumber, issue.wordIndex + 1);
+                        const isWordPlaying = playingWordAudioUrl === wordAudioUrl;
+
+                        return (
+                          <div
+                            key={issue.id || idx}
+                            className="p-5 rounded-3xl border border-amber-300/80 dark:border-amber-700/60 bg-amber-50/20 dark:bg-amber-950/20 space-y-3 shadow-xs"
+                          >
+                            {/* Card Top: Word & Position */}
+                            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-amber-200/50 dark:border-amber-800/40 pb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="font-arabic text-2xl font-bold text-slate-900 dark:text-white px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800">
+                                  {issue.wordArabic}
+                                </span>
+                                <div>
+                                  <div className="text-xs font-bold text-slate-900 dark:text-white">
+                                    {issue.ruleName}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    <strong>Where it appears:</strong> Ayah {issue.ayahNumber}, {issue.wordPositionInAyah}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-500 text-slate-950 flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>Needs Attention</span>
+                              </span>
+                            </div>
+
+                            {/* Exact Structured Report: What happened & What you should do */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+                              
+                              {/* What Happened */}
+                              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
+                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wide block">
+                                  What Happened:
+                                </span>
+                                <div className="font-semibold text-slate-900 dark:text-slate-100">
+                                  {issue.detectedProblem}
+                                </div>
+                                <div className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                                  {issue.whatWasDoneIncorrectly}
+                                </div>
+                              </div>
+
+                              {/* What You Should Do */}
+                              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide block">
+                                  What You Should Do:
+                                </span>
+                                <div className="font-semibold text-emerald-800 dark:text-emerald-300">
+                                  {issue.howToPronounceCorrectly}
+                                </div>
+                                <div className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                                  {issue.simpleExplanation}
+                                </div>
+                              </div>
+
+                            </div>
+
+                            {/* Practice Tip */}
+                            <div className="text-xs text-slate-600 dark:text-slate-300 p-2.5 rounded-xl bg-amber-100/50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+                              <strong className="text-amber-800 dark:text-amber-300">Teacher's Tip:</strong> {issue.practiceExercise}
+                            </div>
+
+                            {/* Actions: Listen to Correct Word & Practise This Word Again */}
+                            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-amber-200/50 dark:border-amber-800/40">
+                              
+                              {/* Listen to the correct word button */}
+                              <button
+                                onClick={() => handleToggleWordAudio(wordAudioUrl)}
+                                className={`w-full sm:w-auto py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
+                                  isWordPlaying
+                                    ? 'bg-amber-500 text-slate-950 animate-pulse'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                }`}
+                              >
+                                {isWordPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                                <span>{isWordPlaying ? 'Playing Correct Word...' : 'Listen to the Correct Word'}</span>
+                              </button>
+
+                              {/* Practise this word again button */}
+                              <button
+                                onClick={() => handleOpenWordPractice(issue)}
+                                className="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                              >
+                                <Mic className="w-3.5 h-3.5 text-rose-400" />
+                                <span>Practise This Word Again</span>
+                              </button>
+
+                            </div>
+
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 7: PRACTISE AGAIN (WHOLE AYAH) & FULL REPORT */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
-                  onClick={() => setActiveView('report')}
-                  className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md"
+                  onClick={handlePracticeAgainWholeAyah}
+                  className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
                 >
-                  <span>VIEW ALL ERRORS AND CORRECTIONS ({analysisResult.detectedIssues.length})</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Practise Again (Whole Ayah — Attempt #{practiceAttemptCount + 1})</span>
                 </button>
 
-                <div className="text-[11px] text-slate-400">
-                  {analysisResult.apiDiagnostics?.notice}
-                </div>
+                <button
+                  onClick={() => setActiveView('report')}
+                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <span>View All Rules Guide & Report</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
+
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* =====================================================================
+          FOCUSED SINGLE-WORD PRACTICE MODAL / CARD (PART 1 STEP 7)
+         ===================================================================== */}
+      {wordPracticeTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl relative">
+            
+            {/* Modal Close Button */}
+            <button
+              onClick={() => setWordPracticeTarget(null)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header */}
+            <div>
+              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
+                Single-Word Pronunciation Practice
+              </span>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Practise: {wordPracticeTarget.wordArabic}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {wordPracticeTarget.wordPositionInAyah} · Rule: {wordPracticeTarget.ruleName}
+              </p>
+            </div>
+
+            {/* Arabic Word Display */}
+            <div className="p-6 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/30 text-center space-y-2">
+              <div className="font-arabic text-4xl sm:text-5xl font-black text-emerald-800 dark:text-emerald-300 py-1">
+                {wordPracticeTarget.wordArabic}
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold max-w-sm mx-auto">
+                {wordPracticeTarget.howToPronounceCorrectly}
+              </p>
+            </div>
+
+            {/* Listen to Sheikh's Master Word Audio */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">1. Listen to Sheikh's Word</div>
+                <div className="text-[11px] text-slate-400">Authentic recitation from Quran Audio Masters</div>
+              </div>
+
+              <button
+                onClick={() => handleToggleWordAudio(wordPracticeTarget.wordAudioUrl)}
+                className={`py-2 px-3.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  playingWordAudioUrl === wordPracticeTarget.wordAudioUrl
+                    ? 'bg-amber-500 text-slate-950 animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                }`}
+              >
+                {playingWordAudioUrl === wordPracticeTarget.wordAudioUrl ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5" />
+                    <span>Pause</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                    <span>Hear Word</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Word Practice Microphone Recording */}
+            <div className="p-4 rounded-2xl bg-rose-50/30 dark:bg-rose-950/20 border border-rose-300/60 dark:border-rose-800/40 space-y-3 text-center">
+              <div className="text-xs font-bold text-slate-900 dark:text-white">
+                2. Record Your Pronunciation of This Word
+              </div>
+
+              {wordRecordingDuration > 0 && (
+                <div className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                  {wordRecordingDuration.toFixed(1)}s
+                </div>
+              )}
+
+              <div className="flex items-center justify-center gap-3">
+                {!isWordRecording ? (
+                  <button
+                    onClick={handleStartWordRecording}
+                    className="py-2.5 px-5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow-md active:scale-95"
+                  >
+                    <Mic className="w-4 h-4" />
+                    <span>{wordRecordedAudioUrl ? 'Record Word Again' : 'Record This Word'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopWordRecording}
+                    className="py-2.5 px-5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-bold flex items-center gap-2 shadow-md animate-pulse"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                    <span>Stop Recording</span>
+                  </button>
+                )}
+
+                {wordRecordedAudioUrl && !isWordRecording && (
+                  <button
+                    onClick={handleToggleUserWordAudio}
+                    className="py-2.5 px-4 rounded-2xl bg-emerald-100 dark:bg-emerald-950 border border-emerald-400 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-1.5"
+                  >
+                    {isWordUserAudioPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                    <span>{isWordUserAudioPlaying ? 'Playing...' : 'Play My Attempt'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Done button */}
+            <div className="pt-2">
+              <button
+                onClick={() => setWordPracticeTarget(null)}
+                className="w-full py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:bg-slate-800"
+              >
+                I'm Ready · Return to Recitation
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
@@ -1285,24 +1790,30 @@ export const TajweedStudio: React.FC<TajweedStudioProps> = ({
                         <strong className="text-amber-700 dark:text-amber-400">Practice Tip:</strong> {issue.practiceExercise}
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        {/* Play affected word */}
                         <button
-                          onClick={() => playReferenceAyah(selectedAyahNumber)}
-                          className="py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5"
+                          onClick={() => handleToggleWordAudio(issue.wordAudioUrl || getWordAudioUrl(selectedSurahId, selectedAyahNumber, issue.wordIndex + 1))}
+                          className={`py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                            playingWordAudioUrl === (issue.wordAudioUrl || getWordAudioUrl(selectedSurahId, selectedAyahNumber, issue.wordIndex + 1))
+                              ? 'bg-amber-500 text-slate-950 animate-pulse'
+                              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          }`}
                         >
                           <Volume2 className="w-3.5 h-3.5" />
-                          <span>Hear Sheikh</span>
+                          <span>
+                            {playingWordAudioUrl === (issue.wordAudioUrl || getWordAudioUrl(selectedSurahId, selectedAyahNumber, issue.wordIndex + 1))
+                              ? 'Playing...'
+                              : 'Listen to Correct Word'}
+                          </span>
                         </button>
 
                         <button
-                          onClick={() => {
-                            setActiveHighlightedWordIdx(issue.wordIndex);
-                            setActiveView('studio');
-                          }}
+                          onClick={() => handleOpenWordPractice(issue)}
                           className="py-1.5 px-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold flex items-center gap-1.5"
                         >
-                          <Mic className="w-3.5 h-3.5" />
-                          <span>Practice Word</span>
+                          <Mic className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Practise This Word Again</span>
                         </button>
                       </div>
                     </div>

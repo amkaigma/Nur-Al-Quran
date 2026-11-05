@@ -650,17 +650,28 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
               <strong>Surah {activeDisplaySurah.nameEnglish}</strong> is not recorded in {currentReciter.riwayah} by {currentReciter.name} (only {currentReciter.availableSurahs?.length || 0} surahs in this canonical archive).
             </span>
           </div>
-          {onSelectReciter && (
-            <button
-              onClick={() => {
-                const fullReciter = RECITERS.find(r => r.id === 'mahmoud-khalil-al-husary') || RECITERS[0];
-                onSelectReciter(fullReciter);
-              }}
-              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shrink-0 transition-colors"
-            >
-              Switch to Complete Reciter (Al-Husary)
-            </button>
-          )}
+          {onSelectReciter && (() => {
+            const sameRiwayahReciter = RECITERS.find(r => 
+              r.riwayahId === currentReciter.riwayahId && 
+              r.id !== currentReciter.id &&
+              (r.availableSurahs?.includes(activeDisplaySurah.id) ?? false)
+            );
+            if (sameRiwayahReciter) {
+              return (
+                <button
+                  onClick={() => onSelectReciter(sameRiwayahReciter)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shrink-0 transition-colors"
+                >
+                  Switch to {sameRiwayahReciter.name} ({currentReciter.riwayah})
+                </button>
+              );
+            }
+            return (
+              <span className="text-[11px] text-amber-300 font-medium">
+                (Riwayah {currentReciter.riwayah} strictly preserved)
+              </span>
+            );
+          })()}
         </div>
       )}
 

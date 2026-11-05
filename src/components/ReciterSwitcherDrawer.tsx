@@ -97,8 +97,10 @@ export const ReciterSwitcherDrawer: React.FC<ReciterSwitcherDrawerProps> = ({
       previewAudio.pause();
     }
 
-    // Play preview of current surah or Surah 1 if available
-    const surahToTest = isSurahAvailableForReciter(reciter, currentSurahId) ? currentSurahId : 1;
+    // Play preview of current surah or first available surah
+    const surahToTest = isSurahAvailableForReciter(reciter, currentSurahId) 
+      ? currentSurahId 
+      : (reciter.availableSurahs?.[0] || 1);
     const url = getSurahAudioUrl(reciter, surahToTest);
     const audio = new Audio(url);
     

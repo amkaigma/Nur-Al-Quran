@@ -9,6 +9,7 @@ import {
   evaluateRecitationAlgorithmic, 
   extractTajweedPointsFromAyah, 
   getBenchmarkDurationForAyah, 
+  getWordAudioUrl,
   RecitationAnalysisResult 
 } from './src/services/tajweedAnalysisService';
 
@@ -1038,6 +1039,18 @@ Conduct a rigorous phonetic analysis:
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        const totalWords = words.length;
+        const mappedIssues = (parsed.detectedIssues || []).map((issue: any, idx: number) => {
+          const wordIdx1 = Math.min(totalWords, Math.max(1, (issue.wordIndex ?? idx) + 1));
+          return {
+            ...issue,
+            wordPositionInAyah: issue.wordPositionInAyah || `Word ${wordIdx1} of ${totalWords}`,
+            totalWordsInAyah: totalWords,
+            issueType: issue.issueType || 'tajweed_rule',
+            wordAudioUrl: issue.wordAudioUrl || getWordAudioUrl(surahId, ayahNumber, wordIdx1)
+          };
+        });
+
         const result: RecitationAnalysisResult = {
           surahId,
           ayahNumber,
@@ -1049,7 +1062,7 @@ Conduct a rigorous phonetic analysis:
           confidence: parsed.confidence || 'high',
           analysisMethod: 'gemini_multimodal',
           shortReviewSummary: parsed.shortReviewSummary || ['AI Speech & Tajweed phoneme verification completed.'],
-          detectedIssues: parsed.detectedIssues || [],
+          detectedIssues: mappedIssues,
           recordingDurationSeconds: durationSeconds,
           benchmarkDurationSeconds: benchmarkSec,
           overallPacingStatus: parsed.overallPacingStatus || 'optimal',
