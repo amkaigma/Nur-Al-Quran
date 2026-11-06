@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Reciter } from '../types/quran';
-import { getSurahAudioUrl, getSurahAudioFallbacks, isSurahAvailableForReciter } from '../data/reciters';
+import { 
+  getSurahAudioUrl, 
+  getSurahAudioFallbacks, 
+  isSurahAvailableForReciter,
+  getSameRiwayahAlternativeReciter 
+} from '../data/reciters';
 import { updateLastStopped } from '../services/storage';
 import { getSurahById } from '../data/surahs';
 import { 
@@ -15,9 +20,10 @@ export interface UseQuranAudioProps {
   currentReciter: Reciter;
   currentSurahId: number;
   onSurahChange: (newSurahId: number) => void;
+  onReciterChange?: (newReciter: Reciter) => void;
 }
 
-export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }: UseQuranAudioProps) {
+export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange, onReciterChange }: UseQuranAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -30,6 +36,18 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
   const [hasError, setHasError] = useState<boolean>(false);
   const [isUnavailable, setIsUnavailable] = useState<boolean>(false);
   const [syncSettings, setSyncSettings] = useState<QuranSyncSettings>(() => getSyncSettings());
+
+  const isAvailableForCurrentReciter = useMemo(() => {
+    return isSurahAvailableForReciter(currentReciter, currentSurahId);
+  }, [currentReciter, currentSurahId]);
+
+  const sameRiwayahAltReciter = useMemo(() => {
+    if (isAvailableForCurrentReciter) return null;
+    return getSameRiwayahAlternativeReciter(currentReciter, currentSurahId) || null;
+  }, [isAvailableForCurrentReciter, currentReciter, currentSurahId]);
+
+  // Total availability in this Riwayah
+  const isAudioAvailable = isAvailableForCurrentReciter || Boolean(sameRiwayahAltReciter);
 
   const updateSyncSettings = useCallback((updates: Partial<QuranSyncSettings>) => {
     setSyncSettings(prev => {
@@ -127,8 +145,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     const audio = audioRef.current;
     if (!audio) return;
 
-    const available = isSurahAvailableForReciter(currentReciter, currentSurahId);
-    setIsUnavailable(!available);
+    setIsUnavailable(!isAudioAvailable);
 
     const fallbacks = getSurahAudioFallbacks(currentReciter, currentSurahId);
     fallbacksRef.current = fallbacks;
@@ -145,7 +162,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     // Track last stopped in storage
     updateLastStopped(currentSurahId, 1, currentReciter.id);
 
-    if (wasPlaying && available) {
+    if (wasPlaying && isAudioAvailable) {
       setIsLoading(true);
       audio.play().then(() => {
         setIsPlaying(true);
@@ -172,7 +189,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
       setIsPlaying(false);
       setIsLoading(false);
     }
-  }, [currentReciter, currentSurahId]);
+  }, [currentReciter, currentSurahId, isAudioAvailable]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -182,8 +199,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
       audio.pause();
       setIsPlaying(false);
     } else {
-      const available = isSurahAvailableForReciter(currentReciter, currentSurahId);
-      if (!available) {
+      if (!isAudioAvailable) {
         setIsUnavailable(true);
         setIsLoading(false);
         setIsPlaying(false);
@@ -222,7 +238,7 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
           }
         });
     }
-  }, [isPlaying, currentSurahId, currentReciter]);
+  }, [isPlaying, currentSurahId, currentReciter, isAudioAvailable]);
 
   const seek = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -304,6 +320,12 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     seek(fraction * duration);
   }, [currentSurahId, duration, seek]);
 
+  const switchToSameRiwayahAlternative = useCallback(() => {
+    if (sameRiwayahAltReciter && onReciterChange) {
+      onReciterChange(sameRiwayahAltReciter);
+    }
+  }, [sameRiwayahAltReciter, onReciterChange]);
+
   return {
     isPlaying,
     currentTime,
@@ -315,6 +337,9 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     isLoading,
     hasError,
     isUnavailable,
+    isPartialMissingForCurrentReciter: !isAvailableForCurrentReciter,
+    sameRiwayahAltReciter,
+    switchToSameRiwayahAlternative,
     togglePlay,
     seek,
     changePlaybackRate,
@@ -331,3 +356,4 @@ export function useQuranAudio({ currentReciter, currentSurahId, onSurahChange }:
     seekToAyah
   };
 }
+

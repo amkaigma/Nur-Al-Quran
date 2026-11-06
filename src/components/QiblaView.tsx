@@ -273,20 +273,42 @@ export const QiblaView: React.FC = () => {
 
           </div>
 
-          {/* Sensor button for mobile compass calibration */}
-          {!sensorSupported && !sensorPermissionRequested && (
-            <button
-              onClick={requestCompassPermission}
-              className="mt-6 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs"
-            >
-              Enable Live Phone Compass Sensor
-            </button>
+          {/* Sensor Status / Fallback Banner */}
+          {!sensorSupported && (
+            <div className="mt-6 w-full p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-left space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-amber-600" />
+                  <span>Astronomical Bearing Mode</span>
+                </span>
+                {!sensorPermissionRequested && (
+                  <button
+                    onClick={requestCompassPermission}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-xs"
+                  >
+                    Check Phone Sensor
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-amber-900/80 dark:text-amber-200 leading-relaxed">
+                Hardware magnetometer sensor not detected (common on desktops & laptops). The compass displays the fixed astronomical bearing (<strong className="font-bold">{qiblaBearing}°</strong> from True North). Align your prayer mat with {qiblaBearing}° using the sun, landmarks, or a handheld compass.
+              </p>
+              <div className="pt-1 flex items-center gap-3 text-[10px] text-amber-700 dark:text-amber-400">
+                <span>💡 Tip: Calibrate on phones by waving in a gentle figure-8 motion.</span>
+              </div>
+            </div>
           )}
 
           {sensorSupported && (
-            <p className="mt-4 text-[11px] text-slate-400 text-center">
-              🧭 Real-time device sensor active ({compassHeading}° phone heading)
-            </p>
+            <div className="mt-4 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-center w-full">
+              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Real-time device compass active ({compassHeading}° phone heading)</span>
+              </p>
+              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400 mt-0.5">
+                Rotate your phone until the needle points straight up to the Ka'bah.
+              </p>
+            </div>
           )}
 
         </div>

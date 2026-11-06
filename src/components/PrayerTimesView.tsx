@@ -23,7 +23,8 @@ import {
   Printer,
   ChevronDown,
   X,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 import { 
   calculatePrayerTimes, 
@@ -69,8 +70,8 @@ export const PrayerTimesView: React.FC = () => {
   });
   const [hijriOffset, setHijriOffset] = useState<number>(0);
 
-  // View mode: 'daily' | 'monthly' | 'settings'
-  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'settings'>('daily');
+  // View mode: 'daily' | 'monthly' | 'learning' | 'settings'
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'learning' | 'settings'>('daily');
 
   // Adhan Settings State
   const [adhanSettings, setAdhanSettings] = useState<AdhanSettings>(() => getAdhanSettings());
@@ -266,6 +267,17 @@ export const PrayerTimesView: React.FC = () => {
                 }`}
               >
                 Monthly
+              </button>
+              <button
+                onClick={() => setViewMode('learning')}
+                className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                  viewMode === 'learning'
+                    ? 'bg-white dark:bg-slate-700 text-emerald-800 dark:text-emerald-300 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <BookOpen className="w-3 h-3 text-emerald-600" />
+                <span>Learning</span>
               </button>
               <button
                 onClick={() => setViewMode('settings')}
@@ -758,6 +770,272 @@ export const PrayerTimesView: React.FC = () => {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* =====================================================================
+          VIEW: PRAYER LEARNING & GUIDANCE (5 DAILY PRAYERS, WUDU, STEPS, DUAS)
+         ===================================================================== */}
+      {viewMode === 'learning' && (
+        <div className="space-y-6 animate-fadeIn">
+          
+          {/* Header Banner */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" />
+              <span>Comprehensive Islamic Prayer Guide</span>
+            </span>
+            <h2 className="text-xl sm:text-2xl font-extrabold">
+              How to Pray, Perform Wudu & Daily Rak'ah Breakdown
+            </h2>
+            <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
+              Step-by-step instructions based on the authentic Sunnah of the Prophet Muhammad ﷺ for beginners and those refining their Salah.
+            </p>
+          </div>
+
+          {/* 1. The 5 Daily Prayers & Rak'ah Structure */}
+          <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                  <span>1. The 5 Daily Obligatory Prayers (الصلوات الخمس)</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Total daily obligatory: 17 Fard Rak'ahs + 12 Sunnah Mu'akkadah (established sunnahs)
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {[
+                {
+                  name: 'Fajr (Dawn)',
+                  arabic: 'الفجر',
+                  fard: '2 Rak\'ahs (Audible)',
+                  sunnahBefore: '2 Rak\'ahs (Mu\'akkadah)',
+                  sunnahAfter: 'None',
+                  timing: 'From true dawn until right before sunrise',
+                  badge: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                },
+                {
+                  name: 'Dhuhr (Midday)',
+                  arabic: 'الظهر',
+                  fard: '4 Rak\'ahs (Silent)',
+                  sunnahBefore: '4 Rak\'ahs (2+2)',
+                  sunnahAfter: '2 Rak\'ahs',
+                  timing: 'From zenith (sun passing meridian) until shadow equals object height',
+                  badge: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                },
+                {
+                  name: 'Asr (Afternoon)',
+                  arabic: 'العصر',
+                  fard: '4 Rak\'ahs (Silent)',
+                  sunnahBefore: '4 Rak\'ahs (Ghayr Mu\'akkadah)',
+                  sunnahAfter: 'None',
+                  timing: 'From afternoon until the sun starts turning yellow/red',
+                  badge: 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                },
+                {
+                  name: 'Maghrib (Sunset)',
+                  arabic: 'المغرب',
+                  fard: '3 Rak\'ahs (First 2 Audible)',
+                  sunnahBefore: '2 Rak\'ahs (Optional)',
+                  sunnahAfter: '2 Rak\'ahs (Mu\'akkadah)',
+                  timing: 'Immediately after the sun completely dips below horizon',
+                  badge: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                },
+                {
+                  name: 'Isha (Night)',
+                  arabic: 'العشاء',
+                  fard: '4 Rak\'ahs (First 2 Audible)',
+                  sunnahBefore: '2 Rak\'ahs (Optional)',
+                  sunnahAfter: '2 Rak\'ahs + 1 or 3 Witr',
+                  timing: 'After twilight disappears until the middle of the night',
+                  badge: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                }
+              ].map(prayer => (
+                <div key={prayer.name} className={`p-4 rounded-xl border ${prayer.badge} space-y-2 flex flex-col justify-between`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">{prayer.name}</span>
+                      <span className="font-arabic font-bold text-sm">{prayer.arabic}</span>
+                    </div>
+                    <div className="mt-2 text-xs space-y-1">
+                      <div className="font-extrabold text-slate-900 dark:text-white">
+                        Fard: {prayer.fard}
+                      </div>
+                      <div className="text-[11px] opacity-90">
+                        Before: {prayer.sunnahBefore}
+                      </div>
+                      <div className="text-[11px] opacity-90">
+                        After: {prayer.sunnahAfter}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] opacity-75 pt-2 border-t border-current/20">
+                    {prayer.timing}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Step-by-Step Wudu (Ablution) */}
+          <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span>2. Step-by-Step Wudu (Purification / الوضوء)</span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                The key to Salah. Ensure clean water touches all prescribed areas without missing.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { step: '1', title: 'Niyyah & Bismillah', desc: 'Make sincere intention in your heart to purify for prayer, then say: "Bismillah" (In the name of Allah).' },
+                { step: '2', title: 'Washing Hands 3x', desc: 'Wash both hands up to the wrists thoroughly 3 times, passing water between all fingers.' },
+                { step: '3', title: 'Mouth (Madmadah) 3x', desc: 'Take water in your right hand, rinse your mouth thoroughly 3 times and spit it out.' },
+                { step: '4', title: 'Nose (Istinshaq) 3x', desc: 'Sniff water gently into nostrils with the right hand and blow it out using the left hand 3 times.' },
+                { step: '5', title: 'Face 3x', desc: 'Wash the entire face 3 times from the hairline to the chin and from ear to ear.' },
+                { step: '6', title: 'Arms & Elbows 3x', desc: 'Wash arms up to and including the elbows 3 times, beginning with the right arm, then the left.' },
+                { step: '7', title: 'Wiping Head & Ears 1x', desc: 'Wet hands and wipe back from forehead to nape and forward, then wipe inside and back of ears.' },
+                { step: '8', title: 'Feet & Ankles 3x', desc: 'Wash feet thoroughly up to and including the ankles 3 times, right foot first, cleaning between toes.' }
+              ].map(s => (
+                <div key={s.step} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center">
+                      {s.step}
+                    </span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-white">{s.title}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed pt-1">
+                    {s.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Authentic Dua after Wudu */}
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 space-y-2">
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Authentic Dua After Completing Wudu (Sahih Muslim)</span>
+              </span>
+              <p className="font-arabic text-right text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-loose" dir="rtl">
+                أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ. اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ.
+              </p>
+              <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="font-medium italic">
+                  "Ash-hadu allā ilāha illallāhu waḥdahū lā sharīka lah, wa ash-hadu anna Muḥammadan 'abduhū wa rasūluh. Allāhummaj'alnī minat-tawwābīna waj'alnī minal-mutaṭahhirīn."
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Translation: "I bear witness that none has the right to be worshipped except Allah alone without partner, and I bear witness that Muhammad is His slave and Messenger. O Allah, make me among those who constantly repent and among those who purify themselves."
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Step-by-Step Salah (Prayer) Sequence */}
+          <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>3. Step-by-Step Prayer Actions & Recitations (صفة الصلاة)</span>
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                {
+                  action: 'Takbirat al-Ihram (Opening)',
+                  posture: 'Face Qibla, raise hands to ears/shoulders',
+                  say: 'اللهُ أَكْبَرُ (Allahu Akbar — Allah is the Greatest)',
+                  detail: 'Focus eyes on the place of prostration. Place right hand over left wrist on the chest.'
+                },
+                {
+                  action: 'Qiyam (Standing & Recitation)',
+                  posture: 'Stand upright with tranquility',
+                  say: 'Dua al-Istiftah + Surah Al-Fatihah + any Quranic Surah',
+                  detail: 'Al-Fatihah is an essential pillar (Rukn) in every single Rak\'ah.'
+                },
+                {
+                  action: 'Ruku (Bowing)',
+                  posture: 'Bow with back flat and horizontal, hands firmly on knees',
+                  say: 'سُبْحَانَ رَبِّيَ الْعَظِيمِ (Subhana Rabbiyal-\'Adheem — Glory be to my Lord the Most Magnificent) 3 times',
+                  detail: 'Do not hurry. Wait until all vertebrae rest still (Tom\'aneenah).'
+                },
+                {
+                  action: 'I\'tidal / Qawmah (Rising from Bowing)',
+                  posture: 'Stand back up straight with hands raised then lowered',
+                  say: 'سَمِعَ اللَّهُ لِمَنْ حَمِدَهُ (Sami\' Allahu liman hamidah) then: رَبَّنَا وَلَكَ الْحَمْدُ (Rabbana wa lakal-hamd)',
+                  detail: 'Stand completely upright before prostrating.'
+                },
+                {
+                  action: 'Sujud (Prostration)',
+                  posture: 'Prostrate on 7 bones: forehead & nose, both hands, both knees, tips of both feet',
+                  say: 'سُبْحَانَ رَبِّيَ الأَعْلَى (Subhana Rabbiyal-A\'la — Glory be to my Lord the Most High) 3 times',
+                  detail: 'This is the closest a servant is to their Lord. Make heartfelt Dua here.'
+                },
+                {
+                  action: 'Jalsah (Sitting between two prostrations)',
+                  posture: 'Sit calmly on the left foot with the right foot upright',
+                  say: 'رَبِّ اغْفِرْ لِي، رَبِّ اغْفِرْ لِي (Rabbighfir lee, Rabbighfir lee — Lord forgive me)',
+                  detail: 'Do not rush into the second prostration.'
+                },
+                {
+                  action: 'Tashahhud (Sitting for Testimony)',
+                  posture: 'Sit after 2nd and last Rak\'ah, pointing index finger to Qibla',
+                  say: 'التَّحِيَّاتُ لِلَّهِ وَالصَّلَوَاتُ وَالطَّيِّبَاتُ... (At-Tahiyyatu lillahi...) + As-Salat al-Ibrahimiyyah',
+                  detail: 'Recite with sincere contemplation of peace upon the Prophet ﷺ.'
+                },
+                {
+                  action: 'Tasleem (Concluding the Prayer)',
+                  posture: 'Turn head slowly to the right shoulder, then to the left shoulder',
+                  say: 'السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ (As-Salamu \'alaykum wa rahmatullah)',
+                  detail: 'Marks the sacred exit from the state of prayer.'
+                }
+              ].map((step, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">Step {idx + 1}:</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{step.action}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{step.posture} · {step.detail}</div>
+                  </div>
+                  <div className="text-xs font-arabic font-bold text-emerald-800 dark:text-emerald-300 md:text-right shrink-0">
+                    {step.say}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Common Mistakes to Avoid in Prayer */}
+          <div className="bg-amber-50/50 dark:bg-amber-950/20 p-5 rounded-2xl border border-amber-300 dark:border-amber-800 space-y-3">
+            <h3 className="font-bold text-amber-900 dark:text-amber-200 text-sm flex items-center gap-2">
+              <Info className="w-4 h-4 text-amber-600" />
+              <span>Common Mistakes in Prayer to Avoid (أخطاء شائعة في الصلاة)</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-amber-950 dark:text-amber-100">
+              <div className="p-2.5 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-amber-200 dark:border-amber-800">
+                <strong>1. Pecking like a bird:</strong> Moving so fast through Ruku and Sujud that the body does not settle. Tranquility (Tom'aneenah) is an obligatory pillar of Salah!
+              </div>
+              <div className="p-2.5 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-amber-200 dark:border-amber-800">
+                <strong>2. Racing ahead of the Imam:</strong> Bowing or rising before the Imam in congregation breaks the Sunnah. Wait until the Imam finishes his Takbeer.
+              </div>
+              <div className="p-2.5 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-amber-200 dark:border-amber-800">
+                <strong>3. Looking up or around:</strong> Eyes should look down at the spot where your forehead rests in prostration.
+              </div>
+              <div className="p-2.5 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-amber-200 dark:border-amber-800">
+                <strong>4. Missing dry spots in Wudu:</strong> Especially the backs of ankles/heels and elbows. The Prophet ﷺ said: "Woe to the heels from the Fire."
+              </div>
             </div>
           </div>
 

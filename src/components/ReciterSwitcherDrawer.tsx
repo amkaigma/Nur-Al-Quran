@@ -306,9 +306,13 @@ export const ReciterSwitcherDrawer: React.FC<ReciterSwitcherDrawerProps> = ({
                         <span className="font-mono text-[10px]">{reciter.style}</span>
                       </div>
 
-                      {!hasSurah && (
-                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
-                          ⚠️ Surah {currentSurah.nameEnglish} not in catalog ({reciter.availableSurahs?.length} surahs recorded)
+                      {!hasSurah ? (
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
+                          <span>⚡ Surah {currentSurah.nameEnglish} not in this partial archive ({reciter.availableSurahs?.length}/114) — will play via verified full reciter in {reciter.riwayah}</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 font-medium">
+                          <span>✓ {reciter.availableSurahs?.length === 114 ? 'Complete Mushaf (114 Surahs)' : `Surah ${currentSurah.nameEnglish} recorded`}</span>
                         </div>
                       )}
                     </div>

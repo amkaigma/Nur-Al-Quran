@@ -32,6 +32,8 @@ interface MobileCompactAudioPlayerProps {
   loopMode: 'off' | 'surah' | 'all';
   isLoading: boolean;
   hasError?: boolean;
+  sameRiwayahAltReciter?: Reciter | null;
+  onSwitchToSameRiwayahAlt?: () => void;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onChangeRate: (rate: number) => void;
@@ -66,6 +68,8 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
   loopMode,
   isLoading,
   hasError,
+  sameRiwayahAltReciter,
+  onSwitchToSameRiwayahAlt,
   onTogglePlay,
   onSeek,
   onChangeRate,
@@ -81,7 +85,8 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
   activeAyahNumber
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
+  const isDirectlyAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
+  const isPlayable = isDirectlyAvailable || Boolean(sameRiwayahAltReciter);
   const nextLoop = loopMode === 'surah' ? 'all' : (loopMode === 'all' ? 'off' : 'surah');
   const nextRate = playbackRate === 1 ? 1.25 : (playbackRate === 1.25 ? 0.75 : 1);
 
@@ -133,9 +138,15 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
                 </span>
               </div>
               <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                <span className="truncate">
-                  {currentReciter.countryCode === 'NG' ? `🇳🇬 ${currentReciter.name}` : currentReciter.name}
-                </span>
+                {!isDirectlyAvailable && sameRiwayahAltReciter ? (
+                  <span className="text-amber-300 truncate font-medium">
+                    ⚡ {sameRiwayahAltReciter.name} ({currentReciter.riwayah})
+                  </span>
+                ) : (
+                  <span className="truncate">
+                    {currentReciter.countryCode === 'NG' ? `🇳🇬 ${currentReciter.name}` : currentReciter.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -175,10 +186,10 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
                 e.stopPropagation();
                 onTogglePlay();
               }}
-              disabled={!isAvailable}
+              disabled={!isPlayable}
               aria-label={isPlaying ? 'Pause' : 'Play'}
               className={`w-9 h-9 rounded-full flex items-center justify-center shadow transition-transform active:scale-95 ${
-                !isAvailable
+                !isPlayable
                   ? 'bg-slate-700 opacity-50 cursor-not-allowed text-slate-400'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white'
               }`}
@@ -281,6 +292,28 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
               </button>
             </div>
 
+            {/* Same-Riwayah Alternative Audio Banner if current reciter has not recorded this surah */}
+            {!isDirectlyAvailable && sameRiwayahAltReciter && (
+              <div className="bg-amber-950/90 rounded-2xl p-3.5 border border-amber-600/70 flex items-center justify-between gap-3 text-xs shadow-xs">
+                <div className="min-w-0">
+                  <div className="font-semibold text-amber-300">
+                    Recited by Sheikh {sameRiwayahAltReciter.name}
+                  </div>
+                  <div className="text-[11px] text-amber-200/80">
+                    Riwayah {currentReciter.riwayah} strictly preserved.
+                  </div>
+                </div>
+                {onSwitchToSameRiwayahAlt && (
+                  <button
+                    onClick={onSwitchToSameRiwayahAlt}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 transition-colors"
+                  >
+                    Switch Voice
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Interactive Progress Slider & Time Labels */}
             <div className="space-y-1.5">
               <input
@@ -309,9 +342,9 @@ export const MobileCompactAudioPlayer: React.FC<MobileCompactAudioPlayerProps> =
 
               <button
                 onClick={onTogglePlay}
-                disabled={!isAvailable}
+                disabled={!isPlayable}
                 className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
-                  !isAvailable
+                  !isPlayable
                     ? 'bg-slate-700 opacity-50 cursor-not-allowed text-slate-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}

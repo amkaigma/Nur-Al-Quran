@@ -28,6 +28,8 @@ interface AudioPlayerBarProps {
   loopMode: 'off' | 'surah' | 'all';
   isLoading: boolean;
   hasError?: boolean;
+  sameRiwayahAltReciter?: Reciter | null;
+  onSwitchToSameRiwayahAlt?: () => void;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onChangeRate: (rate: number) => void;
@@ -62,6 +64,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   loopMode,
   isLoading,
   hasError,
+  sameRiwayahAltReciter,
+  onSwitchToSameRiwayahAlt,
   onTogglePlay,
   onSeek,
   onChangeRate,
@@ -79,7 +83,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const nextLoop = loopMode === 'surah' ? 'all' : (loopMode === 'all' ? 'off' : 'surah');
   const nextRate = playbackRate === 1 ? 1.25 : (playbackRate === 1.25 ? 0.75 : 1);
 
-  const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
+  const isDirectlyAvailable = isSurahAvailableForReciter(currentReciter, currentSurah.id);
+  const isPlayable = isDirectlyAvailable || Boolean(sameRiwayahAltReciter);
 
   return (
     <div className="hidden md:block fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl">
@@ -163,15 +168,17 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
             {/* Play/Pause Main Button */}
             <button
               onClick={onTogglePlay}
-              disabled={!isAvailable}
+              disabled={!isPlayable}
               className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-transform active:scale-95 ${
-                !isAvailable
+                !isPlayable
                   ? 'bg-slate-700 opacity-50 cursor-not-allowed text-slate-400'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white'
               }`}
               title={
-                !isAvailable 
-                  ? `Surah ${currentSurah.nameEnglish} is not recorded in this Riwayah by ${currentReciter.name}` 
+                !isDirectlyAvailable && sameRiwayahAltReciter
+                  ? `Playing Surah ${currentSurah.nameEnglish} by Sheikh ${sameRiwayahAltReciter.name} (${currentReciter.riwayah})`
+                  : !isPlayable 
+                  ? `Surah ${currentSurah.nameEnglish} is not recorded in this Riwayah` 
                   : isPlaying 
                   ? 'Pause' 
                   : 'Play'
@@ -197,8 +204,21 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
           </div>
 
-          {/* Time scrubber text or Error indicator */}
-          {!isAvailable ? (
+          {/* Time scrubber text or Same-Riwayah Fallback notice */}
+          {!isDirectlyAvailable && sameRiwayahAltReciter ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-amber-200 font-medium bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-600/70 shadow-xs">
+              <span className="truncate">Recited by <strong>{sameRiwayahAltReciter.name}</strong> ({currentReciter.riwayah})</span>
+              {onSwitchToSameRiwayahAlt && (
+                <button
+                  onClick={onSwitchToSameRiwayahAlt}
+                  className="ml-1 px-1.5 py-0.2 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-colors cursor-pointer"
+                  title="Switch active reciter to this Sheikh"
+                >
+                  Switch
+                </button>
+              )}
+            </div>
+          ) : !isPlayable ? (
             <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-medium bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/80">
               <span>Surah not recorded in this Riwayah</span>
             </div>

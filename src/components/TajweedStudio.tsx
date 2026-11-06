@@ -27,9 +27,14 @@ import {
   ShieldCheck,
   Flame,
   VolumeX,
-  X
+  X,
+  FastForward,
+  Rewind,
+  Repeat,
+  Headphones
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { TAJWEED_RULES, TajweedRuleDetail } from '../data/tajweedRules';
 import { Reciter, Ayah, SurahMeta } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
 import { fetchSurahVerses } from '../services/quranApi';

@@ -324,9 +324,24 @@ export const AudioHealthCheckerModal: React.FC<AudioHealthCheckerModalProps> = (
                         )}
                       </button>
                     ) : (
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900">
-                        Partial Riwayah
-                      </span>
+                      <button
+                        onClick={() => handleTestPlay(surah.id)}
+                        title={isPlayingThis ? "Stop Test" : "Test Play via Same-Riwayah Verified Recording"}
+                        className={`px-1.5 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
+                          isPlayingThis
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200'
+                        }`}
+                      >
+                        {isLoadingThis ? (
+                          <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                        ) : isPlayingThis ? (
+                          <Pause className="w-3 h-3 fill-current" />
+                        ) : (
+                          <Play className="w-3 h-3 fill-current" />
+                        )}
+                        <span>Riwayah Audio</span>
+                      </button>
                     )}
                   </div>
                 </div>

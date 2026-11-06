@@ -24,6 +24,7 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
   onOpenReaderWithSurah
 }) => {
   const [search, setSearch] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'recorded'>('all');
   const [previewSurahId, setPreviewSurahId] = useState<number | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
 
@@ -31,8 +32,8 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
     if (!reciter) return [];
     const q = search.toLowerCase().trim();
     return SURAHS.filter(s => {
-      const isAvailable = reciter.availableSurahs?.includes(s.id);
-      if (!isAvailable) return false;
+      const isRecorded = reciter.availableSurahs?.includes(s.id);
+      if (scopeFilter === 'recorded' && !isRecorded) return false;
       if (!q) return true;
       return (
         s.id.toString() === q ||
@@ -42,7 +43,7 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
         s.meaning.toLowerCase().includes(q)
       );
     });
-  }, [search, reciter]);
+  }, [search, scopeFilter, reciter]);
 
   if (!isOpen || !reciter) return null;
 
@@ -152,8 +153,34 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
             </div>
           </div>
 
+          {/* Scope Selector Tabs for partial reciters */}
+          {reciter.availableSurahs.length < 114 && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setScopeFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                  scopeFilter === 'all'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                All 114 Surahs (Full {reciter.riwayah} Access)
+              </button>
+              <button
+                onClick={() => setScopeFilter('recorded')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                  scopeFilter === 'recorded'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                Recorded by {reciter.name} ({reciter.availableSurahs.length})
+              </button>
+            </div>
+          )}
+
           {/* Search bar inside modal */}
-          <div className="relative mt-4">
+          <div className="relative mt-3">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -170,6 +197,7 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
           {filteredSurahs.map((surah) => {
             const isPlayingThis = isCurrentReciterPlaying(surah.id);
             const isPreviewingThis = previewSurahId === surah.id;
+            const isDirectlyRecorded = reciter.availableSurahs?.includes(surah.id);
 
             return (
               <div
@@ -192,7 +220,7 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
                   </span>
 
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                         {surah.nameEnglish}
                       </span>
@@ -203,6 +231,11 @@ export const SurahListModal: React.FC<SurahListModalProps> = ({
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
                         {surah.revelationType}
                       </span>
+                      {!isDirectlyRecorded && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-medium">
+                          ⚡ Same-Riwayah Audio
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       "{surah.meaning}" · {surah.transliteration}

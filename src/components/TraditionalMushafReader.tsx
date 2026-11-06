@@ -42,7 +42,7 @@ import {
   getPrimarySurahForPage
 } from '../data/mushafData';
 import { fetchMushafPage, MushafPageContent, PageAyah } from '../services/mushafService';
-import { getSurahAudioUrl, isSurahAvailableForReciter, RECITERS } from '../data/reciters';
+import { getSurahAudioUrl, isSurahAvailableForReciter, getSameRiwayahAlternativeReciter, RECITERS } from '../data/reciters';
 import { AudioHealthCheckerModal } from './AudioHealthCheckerModal';
 import { QuranSyncSettings } from '../services/quranSyncService';
 
@@ -641,36 +641,32 @@ export const TraditionalMushafReader: React.FC<TraditionalMushafReaderProps> = (
         </div>
       </div>
 
-      {/* Reciter Availability Warning Banner if active surah is not in partial Riwayah */}
+      {/* Reciter Availability & Same-Riwayah Auto-Playback Banner */}
       {!isCurrentSurahAvailable && (
-        <div className="p-3 rounded-xl mb-3 border border-amber-500/50 bg-amber-950/80 text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md">
+        <div className="p-3 rounded-xl mb-3 border border-emerald-500/50 bg-emerald-950/80 text-emerald-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
             <span>
-              <strong>Surah {activeDisplaySurah.nameEnglish}</strong> is not recorded in {currentReciter.riwayah} by {currentReciter.name} (only {currentReciter.availableSurahs?.length || 0} surahs in this canonical archive).
+              <strong>Surah {activeDisplaySurah.nameEnglish}</strong>: Audio provided by verified recording in <strong>{currentReciter.riwayah}</strong>
+              {(() => {
+                const alt = getSameRiwayahAlternativeReciter(currentReciter, activeDisplaySurah.id);
+                return alt ? ` by Sheikh ${alt.name}` : '';
+              })()} (Riwayah strictly preserved).
             </span>
           </div>
           {onSelectReciter && (() => {
-            const sameRiwayahReciter = RECITERS.find(r => 
-              r.riwayahId === currentReciter.riwayahId && 
-              r.id !== currentReciter.id &&
-              (r.availableSurahs?.includes(activeDisplaySurah.id) ?? false)
-            );
-            if (sameRiwayahReciter) {
+            const sameRiwayahReciter = getSameRiwayahAlternativeReciter(currentReciter, activeDisplaySurah.id);
+            if (sameRiwayahReciter && sameRiwayahReciter.id !== currentReciter.id) {
               return (
                 <button
                   onClick={() => onSelectReciter(sameRiwayahReciter)}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shrink-0 transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shrink-0 transition-colors shadow-xs"
                 >
-                  Switch to {sameRiwayahReciter.name} ({currentReciter.riwayah})
+                  Set {sameRiwayahReciter.name} as Default
                 </button>
               );
             }
-            return (
-              <span className="text-[11px] text-amber-300 font-medium">
-                (Riwayah {currentReciter.riwayah} strictly preserved)
-              </span>
-            );
+            return null;
           })()}
         </div>
       )}

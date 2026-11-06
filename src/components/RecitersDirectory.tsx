@@ -784,7 +784,7 @@ export const RecitersDirectory: React.FC<RecitersDirectoryProps> = ({
                       className="flex-1 py-1.5 px-3 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                     >
                       <ListMusic className="w-3.5 h-3.5" />
-                      <span>Complete Surahs ({reciter.availableSurahs.length})</span>
+                      <span>{reciter.availableSurahs.length === 114 ? 'Complete Quran (114)' : `Surahs (${reciter.availableSurahs.length}/114)`}</span>
                     </button>
 
                     <button

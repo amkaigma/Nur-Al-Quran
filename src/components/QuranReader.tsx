@@ -18,7 +18,7 @@ import { SurahMeta, Reciter, Ayah } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
 import { fetchSurahVerses } from '../services/quranApi';
 import { markSurahCompleted, updateLastStopped } from '../services/storage';
-import { getSurahAudioUrl } from '../data/reciters';
+import { getSurahAudioUrl, isSurahAvailableForReciter, getSameRiwayahAlternativeReciter } from '../data/reciters';
 import { TraditionalMushafReader } from './TraditionalMushafReader';
 import { QuranSyncSettings } from '../services/quranSyncService';
 
@@ -162,11 +162,14 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   };
 
   const handleDownloadSurah = () => {
-    const url = getSurahAudioUrl(currentReciter, currentSurahId);
+    const isAvailable = isSurahAvailableForReciter(currentReciter, currentSurahId);
+    const alt = !isAvailable ? getSameRiwayahAlternativeReciter(currentReciter, currentSurahId) : null;
+    const effectiveReciter = alt || currentReciter;
+    const url = getSurahAudioUrl(effectiveReciter, currentSurahId);
     const link = document.createElement('a');
     link.href = url;
     link.target = '_blank';
-    link.download = `${currentReciter.name.replace(/[^a-zA-Z0-9]/g, '_')}_Surah_${currentSurahId.toString().padStart(3, '0')}_${currentSurah.transliteration}.mp3`;
+    link.download = `${effectiveReciter.name.replace(/[^a-zA-Z0-9]/g, '_')}_Surah_${currentSurahId.toString().padStart(3, '0')}_${currentSurah.transliteration}.mp3`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -513,6 +516,16 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
               <Volume2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <span>Current Reciter:</span>
               <strong className="text-slate-900 dark:text-white">{currentReciter.name}</strong>
+              {!isSurahAvailableForReciter(currentReciter, currentSurah.id) && (() => {
+                const alt = getSameRiwayahAlternativeReciter(currentReciter, currentSurah.id);
+                if (!alt || alt.id === currentReciter.id) return null;
+                return (
+                  <span className="bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-300 dark:border-amber-800 flex items-center gap-1">
+                    <span>⚡ Recited by Sheikh {alt.name}</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400">({currentReciter.riwayah})</span>
+                  </span>
+                );
+              })()}
               {currentReciter.countryCode === 'NG' && (
                 <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold border border-emerald-300 dark:border-emerald-800">
                   🇳🇬 Nigeria {currentReciter.city ? `(${currentReciter.city})` : ''}

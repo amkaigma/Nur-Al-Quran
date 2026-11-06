@@ -22,12 +22,15 @@ import {
   Moon,
   CheckCircle2,
   Calendar,
-  Layers
+  Layers,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 import { MUEZZIN_VOICES, MuezzinVoice } from '../data/muezzins';
 import { 
   getAdhanSettings, 
   saveAdhanSettings, 
+  resetAdhanSettingsToDefault,
   playAdhanVoice, 
   stopAdhanAudio, 
   AdhanSettings 
@@ -42,6 +45,7 @@ export const WorldwideAdhanVoices: React.FC = () => {
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const [previewIsFajr, setPreviewIsFajr] = useState(false);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [assignModalVoice, setAssignModalVoice] = useState<MuezzinVoice | null>(null);
 
@@ -58,6 +62,26 @@ export const WorldwideAdhanVoices: React.FC = () => {
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const handleResetDefaults = () => {
+    if (window.confirm('Reset all Adhan and prayer caller settings to defaults (Sheikh Ali Ahmad Mulla for all prayers)?')) {
+      const def = resetAdhanSettingsToDefault();
+      setSettings(def);
+      showToast('All Adhan settings restored to defaults.');
+    }
+  };
+
+  const handleChangeVolume = (vol: number) => {
+    const updated: AdhanSettings = {
+      ...settings,
+      volume: vol
+    };
+    setSettings(updated);
+    saveAdhanSettings(updated);
+    if (previewAudio) {
+      previewAudio.volume = vol;
+    }
   };
 
   const handleSelectDefaultVoice = (voiceId: string) => {
@@ -133,16 +157,27 @@ export const WorldwideAdhanVoices: React.FC = () => {
     if (activePreviewId === voiceId && previewIsFajr === isFajr) {
       stopAdhanAudio();
       setActivePreviewId(null);
+      setPlaybackError(null);
       return;
     }
 
     stopAdhanAudio();
     setActivePreviewId(voiceId);
     setPreviewIsFajr(isFajr);
+    setPlaybackError(null);
 
-    const audio = playAdhanVoice(voiceId, settings.volume, isFajr, () => {
-      setActivePreviewId(null);
-    });
+    const audio = playAdhanVoice(
+      voiceId, 
+      settings.volume, 
+      isFajr, 
+      () => {
+        setActivePreviewId(null);
+      },
+      (errMsg) => {
+        setPlaybackError(errMsg);
+        setActivePreviewId(null);
+      }
+    );
     setPreviewAudio(audio);
   };
 
@@ -287,19 +322,58 @@ export const WorldwideAdhanVoices: React.FC = () => {
             </button>
           </div>
 
-          <div className="bg-white/10 dark:bg-black/20 backdrop-blur-xs rounded-2xl p-3 border border-white/15 sm:col-span-2 lg:col-span-1 flex flex-col justify-center">
-            <div className="text-[10px] uppercase font-bold text-emerald-300 mb-1 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>Prayer Times Schedule</span>
+          <div className="bg-white/10 dark:bg-black/20 backdrop-blur-xs rounded-2xl p-3 border border-white/15 sm:col-span-2 lg:col-span-1 flex flex-col justify-between gap-2">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase font-bold text-emerald-300 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>Adhan Volume & Schedule</span>
+              </div>
+              <button
+                onClick={handleResetDefaults}
+                className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 text-[10px] font-bold text-amber-200 flex items-center gap-1 transition-colors"
+                title="Restore Default Muezzin & Settings"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset Defaults</span>
+              </button>
             </div>
-            <div className="text-[11px] text-emerald-100 flex items-center justify-between">
-              <span>Per-prayer overrides active:</span>
-              <span className="font-bold text-amber-300 font-mono">
-                {settings.perPrayerVoices ? Object.keys(settings.perPrayerVoices).length : 5} Prayers
+            <div className="flex items-center gap-2 text-white text-[11px]">
+              <Volume2 className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+              <input
+                type="range"
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                value={settings.volume}
+                onChange={(e) => handleChangeVolume(parseFloat(e.target.value))}
+                className="w-full accent-amber-400 cursor-pointer h-1.5 bg-white/20 rounded-lg"
+                title="Adjust Adhan volume"
+              />
+              <span className="font-mono text-[10px] text-amber-300 w-8 text-right shrink-0">
+                {Math.round(settings.volume * 100)}%
               </span>
             </div>
           </div>
         </div>
+
+        {/* Playback Error Alert if any stream encounters network interruption */}
+        {playbackError && (
+          <div className="mt-4 p-3 rounded-2xl bg-rose-950/80 border border-rose-600/80 text-rose-200 text-xs flex items-center justify-between gap-2 shadow-sm animate-fade-in relative z-10">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{playbackError}</span>
+            </div>
+            <button
+              onClick={() => {
+                setPlaybackError(null);
+                if (activeDefaultMuezzin) handleTogglePreview(activeDefaultMuezzin.id);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter and Search Bar */}

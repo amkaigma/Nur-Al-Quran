@@ -105,6 +105,11 @@ export default function App() {
     setIsDarkMode(prev => !prev);
   }, []);
 
+  // Universal scroll restoration: Every new tab or major section change scrolls to the top
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   const [currentReciter, setCurrentReciter] = useState<Reciter>(() => {
     return getReciterById(progress.lastReciterId) || RECITERS[0];
   });
@@ -148,11 +153,14 @@ export default function App() {
     activeMushafPage,
     syncSettings,
     updateSyncSettings,
-    seekToAyah
+    seekToAyah,
+    sameRiwayahAltReciter,
+    switchToSameRiwayahAlternative
   } = useQuranAudio({
     currentReciter,
     currentSurahId,
-    onSurahChange: handleSurahChange
+    onSurahChange: handleSurahChange,
+    onReciterChange: setCurrentReciter
   });
 
   const currentSurahMeta: SurahMeta = getSurahById(currentSurahId) || SURAHS[0];
@@ -634,6 +642,8 @@ export default function App() {
         loopMode={loopMode}
         isLoading={isLoading}
         hasError={hasError}
+        sameRiwayahAltReciter={sameRiwayahAltReciter}
+        onSwitchToSameRiwayahAlt={switchToSameRiwayahAlternative}
         onTogglePlay={togglePlay}
         onSeek={seek}
         onChangeRate={changePlaybackRate}
@@ -671,6 +681,8 @@ export default function App() {
         loopMode={loopMode}
         isLoading={isLoading}
         hasError={hasError}
+        sameRiwayahAltReciter={sameRiwayahAltReciter}
+        onSwitchToSameRiwayahAlt={switchToSameRiwayahAlternative}
         onTogglePlay={togglePlay}
         onSeek={seek}
         onChangeRate={changePlaybackRate}

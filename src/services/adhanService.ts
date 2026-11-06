@@ -156,6 +156,15 @@ export function getAdhanAudioUrl(voiceId: string, isFajr: boolean = false): { pr
   };
 }
 
+export function resetAdhanSettingsToDefault(): AdhanSettings {
+  try {
+    localStorage.setItem(ADHAN_STORAGE_KEY, JSON.stringify(DEFAULT_ADHAN_SETTINGS));
+  } catch (e) {
+    console.warn('Failed to reset Adhan settings:', e);
+  }
+  return { ...DEFAULT_ADHAN_SETTINGS };
+}
+
 /**
  * Plays the actual Adhan recording for a Muezzin.
  */
@@ -163,7 +172,8 @@ export function playAdhanVoice(
   voiceId: string, 
   volume: number = 0.9, 
   isFajr: boolean = false,
-  onEnd?: () => void
+  onEnd?: () => void,
+  onError?: (errMessage: string) => void
 ): HTMLAudioElement {
   stopAdhanAudio();
 
@@ -172,11 +182,21 @@ export function playAdhanVoice(
   audio.volume = Math.max(0.05, Math.min(1.0, volume));
   audio.src = primary;
 
+  let hasAttemptedFallback = false;
+
   audio.onerror = () => {
-    console.warn(`Adhan primary audio failed (${primary}), falling back to ${fallback}`);
-    if (audio.src !== fallback) {
+    if (!hasAttemptedFallback && fallback && fallback !== primary) {
+      hasAttemptedFallback = true;
+      console.warn(`Adhan primary audio failed (${primary}), switching to fallback: ${fallback}`);
       audio.src = fallback;
-      audio.play().catch(e => console.warn('Adhan fallback playback failed:', e));
+      audio.load();
+      audio.play().catch(e => {
+        console.warn('Adhan fallback playback failed:', e);
+        if (onError) onError('Audio playback failed on both primary and backup sources.');
+      });
+    } else {
+      console.warn('Adhan audio playback failed completely.');
+      if (onError) onError('Unable to stream this Adhan recording. Please check network connection.');
     }
   };
 
@@ -186,6 +206,16 @@ export function playAdhanVoice(
 
   audio.play().catch(err => {
     console.warn('Adhan audio playback interrupted or blocked:', err);
+    if (!hasAttemptedFallback && fallback && fallback !== primary) {
+      hasAttemptedFallback = true;
+      audio.src = fallback;
+      audio.load();
+      audio.play().catch(() => {
+        if (onError) onError('Audio playback was blocked by browser or network error.');
+      });
+    } else if (onError) {
+      onError('Audio playback was blocked by browser autoplay policy. Tap play to listen.');
+    }
   });
 
   activeAdhanAudio = audio;
@@ -211,8 +241,13 @@ export function stopAdhanAudio(): void {
 /**
  * Compatibility alias
  */
-export function playAdhanAudio(voiceKey: string, volume: number = 0.9, onEnd?: () => void): HTMLAudioElement {
-  return playAdhanVoice(voiceKey, volume, false, onEnd);
+export function playAdhanAudio(
+  voiceKey: string, 
+  volume: number = 0.9, 
+  onEnd?: () => void,
+  onError?: (errMessage: string) => void
+): HTMLAudioElement {
+  return playAdhanVoice(voiceKey, volume, false, onEnd, onError);
 }
 
 /**
