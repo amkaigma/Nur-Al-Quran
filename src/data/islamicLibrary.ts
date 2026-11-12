@@ -92,7 +92,7 @@ export const LIBRARY_CATEGORIES: LibraryCategory[] = [
     arabicTitle: 'علوم القرآن والتجويد',
     description: 'Tafsir, Tajweed rules, memorization methodologies, Asbab an-Nuzul, and Qira’at science.',
     iconName: 'BookOpen',
-    bookCount: 8
+    bookCount: 9
   }
 ];
 
@@ -1662,6 +1662,45 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
   // ========================================================
   // CATEGORY F: QURANIC STUDIES & TAJWEED (8 Works)
   // ========================================================
+  {
+    id: 'matn-shatibiyyah',
+    slug: 'matn-ash-shatibiyyah',
+    title: 'Matn Ash-Shatibiyyah (Hirz al-Amani)',
+    arabicTitle: 'حرز الأماني ووجه التهاني (متن الشاطبية في القراءات السبع)',
+    author: 'Imam Abu Muhammad Al-Qasim ibn Firruh Al-Shatibi (538–590 AH)',
+    authorBio: 'Legendary Andalusian scholar of Quranic readings from Xàtiva, Spain. Despite being blind, he composed this 1,173-verse poem which became the universal textbook for the Seven Qira’at. Audio recitation by Sheikh Okasha Kameny (الشيخ عكاشة كميني).',
+    category: 'quran_studies',
+    categoryLabel: 'Quranic Studies & Tajweed',
+    description: 'The monumental didactic poem codifying the Seven Canonical Qira’at (Nafi\', Ibn Kathir, Abu \'Amr, Ibn \'Amir, \'Asim, Hamzah, Al-Kisa\'i) and their 14 Ruwat with full audio recitation and downloads by Sheikh Okasha Kameny.',
+    whatItTeaches: 'Complete science of the Seven Qira’at, Uswat (principles) and Farsh (specific Surah variants), and cryptographic cipher system.',
+    importance: 'The premier classic text for mastering the Seven Qira’at across 9 centuries.',
+    keyLessons: ['The Seven Imams and 14 Ruwat', 'Cryptographic cipher system (أبج دهز حطي...)', 'Rules of Idgham, Hamz, Madd, Imalah, and Ra\'at/Lamat.'],
+    originalLanguage: 'Arabic',
+    availableTranslations: ['Arabic', 'English'],
+    authenticityInfo: 'The undisputed supreme authority on the Minor Seven Readings (Al-Qira’at As-Sughra). Audio recitation by Sheikh Okasha Kameny (الشيخ عكاشة كميني).',
+    chaptersCount: 16,
+    featuredQuote: {
+      arabic: 'بَدَأْتُ بِبِسْمِ اللَّهِ فِي النَّظْمِ أَوَّلاَ ... تَبَارَكَ رَحْمَاناً رَحِيماً وَمَوْئِلاَ',
+      english: 'I begin with the Name of Allah in this poetic composition first of all; blessed be He as Most Merciful, Ever Merciful, and our supreme refuge.',
+      reference: 'Matn Ash-Shatibiyyah, Bayt 1'
+    },
+    samplePassages: [
+      {
+        id: 'shat-sample-1',
+        title: 'Opening Lines: Praise and the Noble Quran',
+        arabicText: 'بَدَأْتُ بِبِسْمِ اللَّهِ فِي النَّظْمِ أَوَّلاَ ... تَبَارَكَ رَحْمَاناً رَحِيماً وَمَوْئِلاَ\nوَثَنَّيْتُ صَلَّى اللَّهُ رَبِّي عَلَى الرِّضَا ... مُحَمَّدٍ الْمُهْدَى إِلَى النَّاسِ رِسْلاَ',
+        englishTranslation: 'I begin with the Name of Allah in this poetic composition first of all; blessed be He as Most Merciful, Ever Merciful, and our supreme refuge. And second, may Allah my Lord send peace and blessings upon the chosen, pleasing one: Muhammad, gifted to mankind as an emissary of truth.',
+        reference: 'Matn Ash-Shatibiyyah, Abyat 1–2'
+      },
+      {
+        id: 'shat-sample-2',
+        title: 'The Seven Imams: Nafi‘ al-Madani and his Ruwat',
+        arabicText: 'فَأَمَّا الْكَرِيمُ السِّرِّ فِي الطِّيبِ نَافِعٌ ... فَذَاكَ الَّذِي اخْتَارَ الْمَدِينَةَ مَنْزِلاَ\nوَقَالُونُ عِيسَى ثُمَّ عُثْمَانُ وَرْشُهُمْ ... بِصُحْبَتِهِ المَجْدَ الرَّفِيعَ تَأَثَّلاَ',
+        englishTranslation: 'As for the noble in inner purity and pleasant fragrance, Nafi‘: he is the one who took Madinah the Enlightened as his home and sanctuary. And Qalun ‘Isa, then ‘Uthman called Warsh: through long companionship with him, they firmly established lofty renown and glory.',
+        reference: 'Matn Ash-Shatibiyyah, Abyat 20–21'
+      }
+    ]
+  },
   {
     id: 'muqaddimah-jazariyyah',
     slug: 'al-muqaddimah-al-jazariyyah',

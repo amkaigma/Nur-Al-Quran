@@ -49,6 +49,13 @@ import {
   AdhanSettings,
   ADHAN_VOICE_SOURCES
 } from '../services/adhanService';
+import { 
+  getIqamaSettings, 
+  saveIqamaSettings,
+  playIqamaAudio, 
+  stopIqamaAudio, 
+  IQAMA_VOICES 
+} from '../services/iqamaService';
 
 export const PrayerTimesView: React.FC = () => {
   const [regionTab, setRegionTab] = useState<'nigeria' | 'international'>('nigeria');
@@ -75,6 +82,7 @@ export const PrayerTimesView: React.FC = () => {
 
   // Adhan Settings State
   const [adhanSettings, setAdhanSettings] = useState<AdhanSettings>(() => getAdhanSettings());
+  const [iqamaSettings, setIqamaSettings] = useState(() => getIqamaSettings());
   const [isPlayingTestAdhan, setIsPlayingTestAdhan] = useState(false);
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
 
@@ -202,9 +210,24 @@ export const PrayerTimesView: React.FC = () => {
     }
   };
 
+  const [isPlayingTestIqama, setIsPlayingTestIqama] = useState(false);
+
+  const handleToggleTestIqama = () => {
+    if (isPlayingTestIqama) {
+      stopIqamaAudio();
+      setIsPlayingTestIqama(false);
+    } else {
+      setIsPlayingTestIqama(true);
+      playIqamaAudio(iqamaSettings.selectedVoice, iqamaSettings.volume, () => {
+        setIsPlayingTestIqama(false);
+      });
+    }
+  };
+
   useEffect(() => {
     return () => {
       stopAdhanAudio();
+      stopIqamaAudio();
     };
   }, []);
 
@@ -415,6 +438,17 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.fajr}
               </div>
               <div className="text-[10px] text-slate-400">Dawn prayer</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  {iqamaSettings.enabledPrayers.fajr ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      Iqamah: +{iqamaSettings.prayerDelays.fajr}m
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Iqamah: Off</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Sunrise */}
@@ -426,6 +460,11 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.sunrise}
               </div>
               <div className="text-[10px] text-slate-400">Solar zenith start</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
+                  No Iqamah
+                </div>
+              )}
             </div>
 
             {/* Dhuhr */}
@@ -441,6 +480,17 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.dhuhr}
               </div>
               <div className="text-[10px] text-slate-400">Midday prayer</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  {iqamaSettings.enabledPrayers.dhuhr ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      Iqamah: +{iqamaSettings.prayerDelays.dhuhr}m
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Iqamah: Off</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Asr */}
@@ -456,6 +506,17 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.asr}
               </div>
               <div className="text-[10px] text-slate-400">Afternoon prayer</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  {iqamaSettings.enabledPrayers.asr ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      Iqamah: +{iqamaSettings.prayerDelays.asr}m
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Iqamah: Off</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Maghrib */}
@@ -471,6 +532,17 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.maghrib}
               </div>
               <div className="text-[10px] text-slate-400">Sunset prayer</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  {iqamaSettings.enabledPrayers.maghrib ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      Iqamah: +{iqamaSettings.prayerDelays.maghrib}m
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Iqamah: Off</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Isha */}
@@ -486,7 +558,19 @@ export const PrayerTimesView: React.FC = () => {
                 {prayerTimes.isha}
               </div>
               <div className="text-[10px] text-slate-400">Night prayer</div>
+              {iqamaSettings.enabled && (
+                <div className="mt-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  {iqamaSettings.enabledPrayers.isha ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      Iqamah: +{iqamaSettings.prayerDelays.isha}m
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Iqamah: Off</span>
+                  )}
+                </div>
+              )}
             </div>
+
 
           </div>
 
@@ -604,6 +688,90 @@ export const PrayerTimesView: React.FC = () => {
               ))}
             </div>
           </div>
+
+          {/* Dedicated Automatic Iqamah System Card (Distinct from Adhan) */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-emerald-500/30 dark:border-emerald-700/50 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${iqamaSettings.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <span>Automatic Iqamah System (Qad Qamatis-Salah)</span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                      {iqamaSettings.enabled ? 'Active' : 'Disabled'}
+                    </span>
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Automatically calls the congregation Iqamah recording at the scheduled gap for each of the five prayers.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleToggleTestIqama}
+                  className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                >
+                  {isPlayingTestIqama ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                  <span>{isPlayingTestIqama ? 'Stop Iqamah' : 'Preview Iqamah Voice'}</span>
+                </button>
+
+                <button
+                  onClick={() => setViewMode('settings')}
+                  className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Configure Schedule</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Current Voice & Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Selected Muezzin</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {IQAMA_VOICES[iqamaSettings.selectedVoice]?.name || 'Sheikh Ahmad Basnawi'}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block">
+                  {IQAMA_VOICES[iqamaSettings.selectedVoice]?.mosqueName}
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Dawn (Fajr) Gap</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {iqamaSettings.enabledPrayers.fajr ? `+${iqamaSettings.prayerDelays.fajr} minutes after Adhan` : 'Disabled'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Recommended Sunnah 20m</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Day Prayers (Dhuhr/Asr/Isha)</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  +{iqamaSettings.prayerDelays.dhuhr}m / +{iqamaSettings.prayerDelays.asr}m / +{iqamaSettings.prayerDelays.isha}m
+                </span>
+                <span className="text-[10px] text-slate-500 block">Standard 15m intervals</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Sunset (Maghrib) Gap</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {iqamaSettings.enabledPrayers.maghrib ? `+${iqamaSettings.prayerDelays.maghrib} minutes after Adhan` : 'Disabled'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Brief Sunnah gap</span>
+              </div>
+            </div>
+
+            {/* Important distinction note */}
+            <div className="p-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/50 text-[11px] text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+              <Info className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Authentic Sunnah Practice:</strong> Adhan calls people to the mosque at the start of prayer time. Iqamah announces the immediate start of congregation when rows straighten.
+              </span>
+            </div>
+          </div>
+
 
         </div>
       )}

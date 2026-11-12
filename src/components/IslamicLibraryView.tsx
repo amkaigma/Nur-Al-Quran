@@ -36,10 +36,11 @@ import {
   getBookById 
 } from '../data/islamicLibrary';
 import { HisnulMuslimExperience } from './HisnulMuslimExperience';
+import { ShatibiyyahExperience } from './ShatibiyyahExperience';
 
 export const IslamicLibraryView: React.FC = () => {
-  // Primary mode: 'library' | 'hisnul_muslim'
-  const [libraryMode, setLibraryMode] = useState<'library' | 'hisnul_muslim'>('library');
+  // Primary mode: 'library' | 'hisnul_muslim' | 'shatibiyyah'
+  const [libraryMode, setLibraryMode] = useState<'library' | 'hisnul_muslim' | 'shatibiyyah'>('library');
 
   // Navigation states: 'home' (categories overview) | 'category' (all books in category) | 'book' (book details & reader)
   const [activeView, setActiveView] = useState<'home' | 'category' | 'book'>('home');
@@ -211,17 +212,35 @@ export const IslamicLibraryView: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4 text-amber-300" />
-            <span>Hisnul Muslim Experience (10 Sections)</span>
+            <span>Hisnul Muslim (10 Sections)</span>
+          </button>
+
+          <button
+            onClick={() => setLibraryMode('shatibiyyah')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+              libraryMode === 'shatibiyyah'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-850'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>متن الشاطبية · الشيخ عكاشة كميني</span>
           </button>
         </div>
 
-        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-3 hidden sm:block">
-          {libraryMode === 'hisnul_muslim' ? 'حصن المسلم · 10 Sections with Repetition Counters' : 'Hadith, Adhkar, Aqidah, Seerah, Fiqh & Quran Studies'}
+        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-3 hidden lg:block">
+          {libraryMode === 'hisnul_muslim' 
+            ? 'حصن المسلم · 10 Sections with Repetition Counters' 
+            : libraryMode === 'shatibiyyah'
+            ? 'متن الشاطبية · الشيخ عكاشة كميني · Arabic Reading & Audio'
+            : 'Hadith, Adhkar, Aqidah, Seerah, Fiqh & Quran Studies'}
         </div>
       </div>
 
       {libraryMode === 'hisnul_muslim' ? (
         <HisnulMuslimExperience />
+      ) : libraryMode === 'shatibiyyah' ? (
+        <ShatibiyyahExperience />
       ) : (
         <>
           {/* ── View 1: Library Home (Categories Overview & Favorites) ── */}
@@ -329,34 +348,72 @@ export const IslamicLibraryView: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured: Dedicated Hisnul Muslim Experience Spotlight Banner */}
-              <div 
-                onClick={() => setLibraryMode('hisnul_muslim')}
-                className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 hover:from-emerald-700 hover:to-teal-700 text-white p-4 sm:p-5 rounded-3xl border border-emerald-600/40 shadow-sm cursor-pointer transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-bold shadow-md shrink-0">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-amber-300 border border-emerald-500/30">
-                        DAILY FORTRESS
-                      </span>
-                      <span className="text-xs text-emerald-200">10 Organized Sections · Counters</span>
+              {/* Featured: Dedicated Experience Spotlight Banners */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Hisnul Muslim Card */}
+                <div 
+                  onClick={() => setLibraryMode('hisnul_muslim')}
+                  className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 hover:from-emerald-700 hover:to-teal-700 text-white p-4 sm:p-5 rounded-3xl border border-emerald-600/40 shadow-sm cursor-pointer transition-all flex flex-col justify-between gap-4 group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
                     </div>
-                    <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-amber-200 transition-colors">
-                      Hisnul Muslim (Fortress of the Muslim)
-                    </h3>
-                    <p className="text-xs text-emerald-100/80 line-clamp-1">
-                      Morning & evening Adhkar, post-prayer adhkar, and protection with Arabic, transliteration, English, Hausa meanings, and interactive tap counters.
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-amber-300 border border-emerald-500/30">
+                          DAILY FORTRESS
+                        </span>
+                        <span className="text-xs text-emerald-200">10 Organized Sections · Counters</span>
+                      </div>
+                      <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-amber-200 transition-colors">
+                        Hisnul Muslim (Fortress of the Muslim)
+                      </h3>
+                      <p className="text-xs text-emerald-100/80 line-clamp-2">
+                        Morning & evening Adhkar, post-prayer adhkar, and protection with Arabic, transliteration, English, Hausa meanings, and interactive tap counters.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 flex items-center justify-between text-xs font-bold text-amber-300 pt-2 border-t border-white/10">
+                    <span className="text-[11px] font-arabic opacity-90">حصن المسلم من أذكار الكتاب والسنة</span>
+                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      Open 10 Sections <ChevronRight className="w-4 h-4" />
+                    </span>
                   </div>
                 </div>
 
-                <div className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-end sm:self-center bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
-                  <span>Open 10 Sections</span>
-                  <ChevronRight className="w-4 h-4" />
+                {/* Matn Ash-Shatibiyyah Card */}
+                <div 
+                  onClick={() => setLibraryMode('shatibiyyah')}
+                  className="bg-gradient-to-r from-slate-900 via-emerald-950 to-emerald-900 hover:from-slate-850 hover:to-emerald-850 text-white p-4 sm:p-5 rounded-3xl border border-emerald-500/40 shadow-sm cursor-pointer transition-all flex flex-col justify-between gap-4 group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-amber-300 border border-emerald-400/30">
+                          SEVEN QIRA’AT POEM
+                        </span>
+                        <span className="text-xs text-amber-300 font-semibold">Sheikh Okasha Kameny Audio</span>
+                      </div>
+                      <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-amber-200 transition-colors">
+                        Matn Ash-Shatibiyyah (حرز الأماني)
+                      </h3>
+                      <p className="text-xs text-emerald-100/80 line-clamp-2">
+                        Complete Arabic text of Imam Al-Shatibi’s 1,173 couplets with Bahr at-Taweel hemistich view, Qira’at cipher breakdown, and Okasha Kameny audio streaming and downloading.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 flex items-center justify-between text-xs font-bold text-amber-300 pt-2 border-t border-white/10">
+                    <span className="text-[11px] font-arabic opacity-90">حرز الأماني ووجه التهاني · الشيخ عكاشة كميني</span>
+                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      Read & Listen <ChevronRight className="w-4 h-4" />
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -625,6 +682,31 @@ export const IslamicLibraryView: React.FC = () => {
               </select>
             </div>
           </div>
+
+          {/* Dedicated Shatibiyyah Experience Launcher Banner */}
+          {activeBook.id === 'matn-shatibiyyah' && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white border border-emerald-500/50 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800 text-amber-300 text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Interactive Audio Book Experience</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold font-arabic text-white">
+                  متن الشاطبية كاملاً بقراءة الشيخ عكاشة كميني
+                </h3>
+                <p className="text-xs text-emerald-200/90 max-w-xl">
+                  Open the full 16 chapters with Bahr at-Taweel hemistich view, Qira’at cipher breakdown, verse repetition, speed controls, and direct MP3 audio downloads.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setLibraryMode('shatibiyyah')}
+                className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs sm:text-sm shrink-0 transition-all shadow-md hover:scale-105 active:scale-95"
+              >
+                Launch Complete Reader & Audio →
+              </button>
+            </div>
+          )}
 
           {/* Book Information Card */}
           <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">

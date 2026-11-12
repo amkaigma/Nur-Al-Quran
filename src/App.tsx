@@ -253,20 +253,21 @@ export default function App() {
       const iqamaSettings = getIqamaSettings();
       if (iqamaSettings.enabled) {
         for (const p of prayers) {
-          if (!iqamaSettings.selectedPrayers[p.key]) continue;
+          if (!iqamaSettings.enabledPrayers[p.key]) continue;
           const [hours, minutes] = p.time.split(':').map(Number);
           const prayerDate = new Date();
           prayerDate.setHours(hours, minutes, 0, 0);
 
-          const iqamaTime = new Date(prayerDate.getTime() + iqamaSettings.delayMinutes * 60000);
+          const delayMinutes = iqamaSettings.prayerDelays[p.key] ?? 15;
+          const iqamaTime = new Date(prayerDate.getTime() + delayMinutes * 60000);
           const diffMs = Math.abs(now.getTime() - iqamaTime.getTime());
           if (diffMs < 45000) {
-            const triggered = checkAndTriggerIqama(p.key, p.time, (name) => {
+            const triggered = checkAndTriggerIqama(p.key, p.time, (name, muezzin) => {
               setIqamaToast({
                 prayer: name.toUpperCase(),
-                message: `Automatic Iqama recitation commenced for ${name}. Qad qamatis-Salah.`
+                message: `Qad qamatis-Salah! Authentic Iqamah for ${name} prayer is now calling (${muezzin}).`
               });
-              setTimeout(() => setIqamaToast(null), 10000);
+              setTimeout(() => setIqamaToast(null), 12000);
             });
             if (triggered) break;
           }
@@ -274,8 +275,9 @@ export default function App() {
       }
     };
 
-    // Run every 30 seconds
-    const interval = setInterval(checkPrayerEvents, 30000);
+    // Run immediately on mount, then every 20 seconds for precise timekeeping
+    checkPrayerEvents();
+    const interval = setInterval(checkPrayerEvents, 20000);
     return () => clearInterval(interval);
   }, []);
 
