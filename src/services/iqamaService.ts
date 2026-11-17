@@ -302,13 +302,15 @@ export function stopIqamaAudio(): void {
 export function checkAndTriggerIqama(
   prayerName: PrayerKey,
   prayerTimeStr: string,
-  onIqamaStart?: (prayerName: string, muezzinName: string) => void
+  onIqamaStart?: (prayerName: string, muezzinName: string) => void,
+  dateKeyOverride?: string
 ): boolean {
   const settings = getIqamaSettings();
   if (!settings.enabled) return false;
   if (!settings.enabledPrayers[prayerName]) return false;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = dateKeyOverride || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const playKey = `${todayStr}_${prayerName}`;
 
   try {
@@ -327,7 +329,7 @@ export function checkAndTriggerIqama(
     try {
       new Notification(`Qad Qamatis-Salah: ${prayerName.toUpperCase()}`, {
         body: `Iqamah for ${prayerName} prayer has arrived (${voice.mosqueName}). Stand and straighten rows for prayer.`,
-        icon: '/favicon.ico'
+        icon: '/icons/icon-192.png'
       });
     } catch {
       // Ignored

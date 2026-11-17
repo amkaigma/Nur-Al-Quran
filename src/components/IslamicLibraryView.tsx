@@ -240,7 +240,7 @@ export const IslamicLibraryView: React.FC = () => {
       {libraryMode === 'hisnul_muslim' ? (
         <HisnulMuslimExperience />
       ) : libraryMode === 'shatibiyyah' ? (
-        <ShatibiyyahExperience />
+        <ShatibiyyahExperience onBack={() => setLibraryMode('library')} />
       ) : (
         <>
           {/* ── View 1: Library Home (Categories Overview & Favorites) ── */}
@@ -695,7 +695,7 @@ export const IslamicLibraryView: React.FC = () => {
                   متن الشاطبية كاملاً بقراءة الشيخ عكاشة كميني
                 </h3>
                 <p className="text-xs text-emerald-200/90 max-w-xl">
-                  Open the full 16 chapters with Bahr at-Taweel hemistich view, Qira’at cipher breakdown, verse repetition, speed controls, and direct MP3 audio downloads.
+                  Open the complete 1,173-Bayt Az-Zu&apos;bi / Dar al-Huda edition across 79 chapters and 94 printed pages with traditional hemistich layout, offline audio caching, and Sheikh Okasha Kameny recitation sync.
                 </p>
               </div>
 

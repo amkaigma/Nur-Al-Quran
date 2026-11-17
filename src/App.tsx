@@ -34,9 +34,26 @@ import { SURAHS, getSurahById } from './data/surahs';
 import { getStoredProgress, updateLastStopped } from './services/storage';
 import { useQuranAudio } from './hooks/useQuranAudio';
 import { checkAndTriggerIqama, getIqamaSettings } from './services/iqamaService';
-import { checkAndTriggerAdhan, getAdhanSettings } from './services/adhanService';
-import { calculatePrayerTimes, WORLD_CITIES, NIGERIAN_STATES } from './services/prayerTimes';
-import { Bell, Volume2, X, ShieldCheck, MessageSquare } from 'lucide-react';
+import {
+  attachGlobalAdhanAudioUnlock,
+  evaluateScheduledAdhans,
+  evaluateSimulatedAdhan,
+  getAdhanSettings,
+  getSimulatedAdhan,
+  playAdhanVoice,
+  resolveVoiceIdForPrayer,
+  stopAdhanAudio,
+  ADHAN_SETTINGS_UPDATED_EVENT,
+  ADHAN_SIMULATION_UPDATED_EVENT
+} from './services/adhanService';
+import {
+  calculatePrayerTimes,
+  DailyPrayerKey,
+  getActiveLocationMeta,
+  PRAYER_CONFIG_UPDATED_EVENT
+} from './services/prayerTimes';
+import { syncNativeAdhanAlarms } from './services/nativeAdhanBridge';
+import { Bell, Volume2, X, ShieldCheck, MessageSquare, Play } from 'lucide-react';
 
 export default function App() {
   const [progress, setProgress] = useState(() => getStoredProgress());
@@ -74,7 +91,13 @@ export default function App() {
   
   // Notification toast for automatic Iqama and Adhan
   const [iqamaToast, setIqamaToast] = useState<{ prayer: string; message: string } | null>(null);
-  const [adhanToast, setAdhanToast] = useState<{ prayer: string; message: string } | null>(null);
+  const [adhanToast, setAdhanToast] = useState<{
+    prayer: string;
+    message: string;
+    voiceId?: string;
+    isFajr?: boolean;
+    needsManualPlay?: boolean;
+  } | null>(null);
 
   // Dark mode theme preference persistence
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -210,75 +233,199 @@ export default function App() {
     }
   };
 
-  // Background Automatic Adhan & Iqama Monitor
+  // Unlock audio session on first user gesture + handle notification click wakeup
   useEffect(() => {
+    attachGlobalAdhanAudioUnlock();
+
+    const triggerFromNotification = (prayerKey?: string, voiceId?: string) => {
+      const validKeys: DailyPrayerKey[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+      const key: DailyPrayerKey = validKeys.includes(prayerKey as DailyPrayerKey)
+        ? (prayerKey as DailyPrayerKey)
+        : 'fajr';
+      const settings = getAdhanSettings();
+      const resolvedVoice = voiceId || resolveVoiceIdForPrayer(settings, key);
+      playAdhanVoice(resolvedVoice, settings.volume, key === 'fajr');
+      setAdhanToast({
+        prayer: key.toUpperCase(),
+        message: `Playing ${key} Adhan from notification alert.`,
+        voiceId: resolvedVoice,
+        isFajr: key === 'fajr',
+        needsManualPlay: false
+      });
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const notifPrayer = params.get('adhanPrayer');
+    if (notifPrayer && params.get('play') === '1') {
+      triggerFromNotification(notifPrayer);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'TRIGGER_ADHAN_FROM_NOTIFICATION') {
+        triggerFromNotification(event.data.prayerKey, event.data.voiceId);
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', onSwMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
+    }
+  }, []);
+
+  // Background Automatic Adhan & Iqama Monitor (timezone-safe & simulation-aware)
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const adhanCallbacks = {
+      onAdhanStart: (name: string, voiceId: string, muezzinName: string) => {
+        setAdhanToast({
+          prayer: name.toUpperCase(),
+          message: `Allahu Akbar! Adhan for ${name} prayer is calling (${muezzinName}).`,
+          voiceId,
+          isFajr: name.toLowerCase() === 'fajr',
+          needsManualPlay: false
+        });
+      },
+      onAdhanBlocked: (name: string, voiceId: string, errMessage: string) => {
+        setAdhanToast({
+          prayer: name.toUpperCase(),
+          message: errMessage,
+          voiceId,
+          isFajr: name.toLowerCase() === 'fajr',
+          needsManualPlay: true
+        });
+      },
+      onAdhanError: (name: string, voiceId: string, errMessage: string) => {
+        setAdhanToast({
+          prayer: name.toUpperCase(),
+          message: errMessage,
+          voiceId,
+          isFajr: name.toLowerCase() === 'fajr',
+          needsManualPlay: true
+        });
+      }
+    };
+
+    const syncNativeAlarmsIfPresent = () => {
+      const now = new Date();
+      const activeLoc = getActiveLocationMeta(now);
+      const prayerTimes = calculatePrayerTimes(
+        now,
+        activeLoc.lat,
+        activeLoc.lng,
+        activeLoc.timezone,
+        activeLoc.method,
+        activeLoc.asrJuristic,
+        activeLoc.adjustments
+      );
+      const adhanSettings = getAdhanSettings();
+      void syncNativeAlarms(activeLoc, prayerTimes, adhanSettings);
+    };
+
+    async function syncNativeAlarms(
+      activeLoc: ReturnType<typeof getActiveLocationMeta>,
+      prayerTimes: ReturnType<typeof calculatePrayerTimes>,
+      adhanSettings: ReturnType<typeof getAdhanSettings>
+    ) {
+      await syncNativeAdhanAlarms({
+        enabled: adhanSettings.enabled,
+        enabledPrayers: adhanSettings.enabledPrayers,
+        prayerTimes,
+        cityName: activeLoc.name,
+        muezzinName: adhanSettings.selectedVoice
+      });
+    }
+
     const checkPrayerEvents = () => {
       const now = new Date();
-      // Default to Abuja / FCT or user's chosen location
-      const defaultCity = NIGERIAN_STATES.find(s => s.id === 'ng_fct') || WORLD_CITIES[0];
-      const prayerTimes = calculatePrayerTimes(now, defaultCity.lat, defaultCity.lng, defaultCity.timezone, defaultCity.method);
+      const nowMs = now.getTime();
+      const activeLoc = getActiveLocationMeta(now);
+      const prayerTimes = calculatePrayerTimes(
+        now,
+        activeLoc.lat,
+        activeLoc.lng,
+        activeLoc.timezone,
+        activeLoc.method,
+        activeLoc.asrJuristic,
+        activeLoc.adjustments
+      );
 
-      const prayers: Array<{ key: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; time: string; name: string }> = [
-        { key: 'fajr', time: prayerTimes.fajr, name: 'Fajr' },
-        { key: 'dhuhr', time: prayerTimes.dhuhr, name: 'Dhuhr' },
-        { key: 'asr', time: prayerTimes.asr, name: 'Asr' },
-        { key: 'maghrib', time: prayerTimes.maghrib, name: 'Maghrib' },
-        { key: 'isha', time: prayerTimes.isha, name: 'Isha' },
-      ];
+      // 1A. Check any scheduled simulation test prayer
+      evaluateSimulatedAdhan({ nowMs, callbacks: adhanCallbacks });
 
-      // 1. Check Adhan (entry of prayer)
-      const adhanSettings = getAdhanSettings();
-      if (adhanSettings.enabled) {
-        for (const p of prayers) {
-          if (!adhanSettings.enabledPrayers[p.key]) continue;
-          const [hours, minutes] = p.time.split(':').map(Number);
-          const adhanDate = new Date();
-          adhanDate.setHours(hours, minutes, 0, 0);
+      // 1B. Check all 5 daily prayers for Adhan using exact epoch timestamps
+      evaluateScheduledAdhans({
+        nowMs,
+        prayerTimes,
+        cityName: activeLoc.name,
+        callbacks: adhanCallbacks
+      });
 
-          const diffMs = Math.abs(now.getTime() - adhanDate.getTime());
-          if (diffMs < 45000) {
-            const triggered = checkAndTriggerAdhan(p.key, p.time, defaultCity.name, (name) => {
-              setAdhanToast({
-                prayer: name.toUpperCase(),
-                message: `Allahu Akbar! Adhan for ${name} prayer is now calling. Hayya 'alas-Salah.`
-              });
-              setTimeout(() => setAdhanToast(null), 14000);
-            });
-            if (triggered) break;
-          }
-        }
-      }
-
-      // 2. Check Iqama (congregation announcement)
+      // 2. Check Iqama (congregation announcement after prayer entry)
       const iqamaSettings = getIqamaSettings();
       if (iqamaSettings.enabled) {
-        for (const p of prayers) {
-          if (!iqamaSettings.enabledPrayers[p.key]) continue;
-          const [hours, minutes] = p.time.split(':').map(Number);
-          const prayerDate = new Date();
-          prayerDate.setHours(hours, minutes, 0, 0);
-
-          const delayMinutes = iqamaSettings.prayerDelays[p.key] ?? 15;
-          const iqamaTime = new Date(prayerDate.getTime() + delayMinutes * 60000);
-          const diffMs = Math.abs(now.getTime() - iqamaTime.getTime());
-          if (diffMs < 45000) {
-            const triggered = checkAndTriggerIqama(p.key, p.time, (name, muezzin) => {
-              setIqamaToast({
-                prayer: name.toUpperCase(),
-                message: `Qad qamatis-Salah! Authentic Iqamah for ${name} prayer is now calling (${muezzin}).`
-              });
-              setTimeout(() => setIqamaToast(null), 12000);
-            });
+        const prayerKeys: DailyPrayerKey[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+        for (const key of prayerKeys) {
+          if (!iqamaSettings.enabledPrayers[key]) continue;
+          const slot = prayerTimes.schedule[key];
+          const delayMinutes = iqamaSettings.prayerDelays[key] ?? 15;
+          const iqamaMs = slot.timestampMs + delayMinutes * 60000;
+          const deltaMs = nowMs - iqamaMs;
+          if (deltaMs >= 0 && deltaMs <= 90_000) {
+            const triggered = checkAndTriggerIqama(
+              key,
+              slot.formatted,
+              (name, muezzin) => {
+                setIqamaToast({
+                  prayer: name.toUpperCase(),
+                  message: `Qad qamatis-Salah! Authentic Iqamah for ${name} prayer is now calling (${muezzin}).`
+                });
+                setTimeout(() => setIqamaToast(null), 12000);
+              },
+              prayerTimes.dateKey
+            );
             if (triggered) break;
           }
         }
       }
     };
 
-    // Run immediately on mount, then every 20 seconds for precise timekeeping
+    const rescheduleTimer = () => {
+      if (intervalId) clearInterval(intervalId);
+      const pendingSim = getSimulatedAdhan();
+      const tickMs = pendingSim && pendingSim.status === 'pending' ? 2000 : 10000;
+      intervalId = setInterval(checkPrayerEvents, tickMs);
+    };
+
+    const onConfigOrSettingsChange = () => {
+      syncNativeAlarmsIfPresent();
+      rescheduleTimer();
+      checkPrayerEvents();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkPrayerEvents();
+      }
+    };
+
+    syncNativeAlarmsIfPresent();
     checkPrayerEvents();
-    const interval = setInterval(checkPrayerEvents, 20000);
-    return () => clearInterval(interval);
+    rescheduleTimer();
+
+    window.addEventListener(PRAYER_CONFIG_UPDATED_EVENT, onConfigOrSettingsChange);
+    window.addEventListener(ADHAN_SETTINGS_UPDATED_EVENT, onConfigOrSettingsChange);
+    window.addEventListener(ADHAN_SIMULATION_UPDATED_EVENT, onConfigOrSettingsChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener(PRAYER_CONFIG_UPDATED_EVENT, onConfigOrSettingsChange);
+      window.removeEventListener(ADHAN_SETTINGS_UPDATED_EVENT, onConfigOrSettingsChange);
+      window.removeEventListener(ADHAN_SIMULATION_UPDATED_EVENT, onConfigOrSettingsChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   // Live Client Presence & Session Heartbeat (Feeds live DAU/online count to Super Admin)
@@ -350,23 +497,48 @@ export default function App() {
         </aside>
       )}
 
-      {/* Adhan Toast Notification */}
+      {/* Adhan Toast Notification (with tap-to-play recovery if browser paused autoplay) */}
       {adhanToast && (
-        <aside aria-label="Adhan notifications" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3.5 max-w-md animate-pulse">
+        <aside aria-label="Adhan notifications" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3.5 max-w-lg w-[92vw] sm:w-auto">
           <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center shrink-0 font-bold shadow-md">
             <Bell className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold uppercase tracking-wider text-amber-300">
-              {adhanToast.prayer} Adhan Calling
+              {adhanToast.prayer} Adhan
             </div>
-            <div className="text-xs text-white/90">
+            <div className="text-xs text-white/95 leading-snug">
               {adhanToast.message}
             </div>
+            {adhanToast.needsManualPlay && adhanToast.voiceId && (
+              <button
+                onClick={() => {
+                  const s = getAdhanSettings();
+                  playAdhanVoice(adhanToast.voiceId!, s.volume, Boolean(adhanToast.isFajr));
+                  setAdhanToast((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          needsManualPlay: false,
+                          message: `Playing ${prev.prayer} Adhan now.`
+                        }
+                      : null
+                  );
+                }}
+                className="mt-2 py-1 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-emerald-950 text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Tap to Play Adhan Audio</span>
+              </button>
+            )}
           </div>
-          <button 
-            onClick={() => setAdhanToast(null)}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-emerald-800"
+          <button
+            onClick={() => {
+              stopAdhanAudio();
+              setAdhanToast(null);
+            }}
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-emerald-800 shrink-0"
+            aria-label="Stop and dismiss Adhan notification"
           >
             <X className="w-4 h-4" />
           </button>

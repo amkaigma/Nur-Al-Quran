@@ -38,53 +38,49 @@ import {
   CityPreset,
   PrayerTimesResult,
   generateMonthlyPrayerTimes,
-  getHijriDateString
+  getHijriDateString,
+  getPrayerLocationConfig,
+  savePrayerLocationConfig
 } from '../services/prayerTimes';
-import {
-  getAdhanSettings,
-  saveAdhanSettings,
-  requestAdhanPermissions,
-  playAdhanAudio,
-  stopAdhanAudio,
-  AdhanSettings,
-  ADHAN_VOICE_SOURCES
-} from '../services/adhanService';
+import { AdhanControlPanel } from './AdhanControlPanel';
 import { 
   getIqamaSettings, 
-  saveIqamaSettings,
   playIqamaAudio, 
   stopIqamaAudio, 
   IQAMA_VOICES 
 } from '../services/iqamaService';
 
 export const PrayerTimesView: React.FC = () => {
-  const [regionTab, setRegionTab] = useState<'nigeria' | 'international'>('nigeria');
-  const [selectedCityId, setSelectedCityId] = useState<string>('ng_fct'); // Default Abuja
-  const [customCoords, setCustomCoords] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const initialConfig = useMemo(() => getPrayerLocationConfig(), []);
+  const [regionTab, setRegionTab] = useState<'nigeria' | 'international'>(initialConfig.regionTab);
+  const [selectedCityId, setSelectedCityId] = useState<string>(initialConfig.selectedCityId);
+  const [customCoords, setCustomCoords] = useState<{ lat: number; lng: number; name: string } | null>(initialConfig.customCoords);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   
   // Calculation Settings
-  const [calculationMethod, setCalculationMethod] = useState<CalculationMethodId>('egyptian');
-  const [asrJuristic, setAsrJuristic] = useState<'standard' | 'hanafi'>('standard');
-  const [minuteAdjustments, setMinuteAdjustments] = useState({
-    fajr: 0,
-    sunrise: 0,
-    dhuhr: 0,
-    asr: 0,
-    maghrib: 0,
-    isha: 0
-  });
-  const [hijriOffset, setHijriOffset] = useState<number>(0);
+  const [calculationMethod, setCalculationMethod] = useState<CalculationMethodId>(initialConfig.calculationMethod);
+  const [asrJuristic, setAsrJuristic] = useState<'standard' | 'hanafi'>(initialConfig.asrJuristic);
+  const [minuteAdjustments, setMinuteAdjustments] = useState(initialConfig.minuteAdjustments);
+  const [hijriOffset, setHijriOffset] = useState<number>(initialConfig.hijriOffset);
+
+  // Persist prayer location & calculation preferences globally so App scheduler uses them immediately
+  useEffect(() => {
+    savePrayerLocationConfig({
+      regionTab,
+      selectedCityId,
+      customCoords,
+      calculationMethod,
+      asrJuristic,
+      minuteAdjustments,
+      hijriOffset
+    });
+  }, [regionTab, selectedCityId, customCoords, calculationMethod, asrJuristic, minuteAdjustments, hijriOffset]);
 
   // View mode: 'daily' | 'monthly' | 'learning' | 'settings'
   const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'learning' | 'settings'>('daily');
 
-  // Adhan Settings State
-  const [adhanSettings, setAdhanSettings] = useState<AdhanSettings>(() => getAdhanSettings());
-  const [iqamaSettings, setIqamaSettings] = useState(() => getIqamaSettings());
-  const [isPlayingTestAdhan, setIsPlayingTestAdhan] = useState(false);
-  const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
+  const [iqamaSettings] = useState(() => getIqamaSettings());
 
   const [now, setNow] = useState<Date>(new Date());
 
@@ -181,35 +177,6 @@ export const PrayerTimesView: React.FC = () => {
     );
   };
 
-  const handleUpdateAdhanSettings = (updates: Partial<AdhanSettings>) => {
-    const next = { ...adhanSettings, ...updates };
-    setAdhanSettings(next);
-    saveAdhanSettings(next);
-  };
-
-  const handleRequestPermissions = async () => {
-    const { audioAllowed, notificationsAllowed } = await requestAdhanPermissions();
-    handleUpdateAdhanSettings({ permissionGranted: audioAllowed || notificationsAllowed });
-    if (audioAllowed || notificationsAllowed) {
-      setPermissionMsg('✓ Adhan audio & notifications permitted!');
-    } else {
-      setPermissionMsg('⚠️ Permissions required by your browser for auto-playback.');
-    }
-    setTimeout(() => setPermissionMsg(null), 3500);
-  };
-
-  const handleToggleTestAdhan = () => {
-    if (isPlayingTestAdhan) {
-      stopAdhanAudio();
-      setIsPlayingTestAdhan(false);
-    } else {
-      setIsPlayingTestAdhan(true);
-      playAdhanAudio(adhanSettings.selectedVoice, adhanSettings.volume, () => {
-        setIsPlayingTestAdhan(false);
-      });
-    }
-  };
-
   const [isPlayingTestIqama, setIsPlayingTestIqama] = useState(false);
 
   const handleToggleTestIqama = () => {
@@ -226,7 +193,6 @@ export const PrayerTimesView: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      stopAdhanAudio();
       stopIqamaAudio();
     };
   }, []);
@@ -332,6 +298,7 @@ export const PrayerTimesView: React.FC = () => {
                 setRegionTab('nigeria');
                 setCustomCoords(null);
                 setSelectedCityId('ng_fct');
+                setCalculationMethod('egyptian');
               }}
               className={`px-3 py-1.5 rounded-md transition-colors ${
                 regionTab === 'nigeria'
@@ -346,6 +313,7 @@ export const PrayerTimesView: React.FC = () => {
                 setRegionTab('international');
                 setCustomCoords(null);
                 setSelectedCityId('makkah');
+                setCalculationMethod('umm_al_qura');
               }}
               className={`px-3 py-1.5 rounded-md transition-colors ${
                 regionTab === 'international'
@@ -362,8 +330,11 @@ export const PrayerTimesView: React.FC = () => {
             <select
               value={selectedCityId}
               onChange={(e) => {
-                setSelectedCityId(e.target.value);
+                const nextId = e.target.value;
+                setSelectedCityId(nextId);
                 setCustomCoords(null);
+                const found = WORLD_CITIES.find((c) => c.id === nextId);
+                if (found) setCalculationMethod(found.method);
               }}
               className="w-full py-1.5 pl-3 pr-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
@@ -574,130 +545,21 @@ export const PrayerTimesView: React.FC = () => {
 
           </div>
 
-          {/* Dedicated Adhan & Notification Card (Separate from Iqama) */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Adhan Calling System (Entry of Prayer Time)
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Announces the start of each of the 5 daily prayers with authentic Muadhin voices.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleToggleTestAdhan}
-                  className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
-                >
-                  {isPlayingTestAdhan ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                  <span>{isPlayingTestAdhan ? 'Stop Adhan' : 'Preview Adhan'}</span>
-                </button>
-
-                <button
-                  onClick={handleRequestPermissions}
-                  className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {permissionMsg && (
-              <div className="mt-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 p-2 rounded-lg">
-                {permissionMsg}
-              </div>
-            )}
-
-            {/* Adhan Controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                  Selected Muadhin Voice:
-                </label>
-                <select
-                  value={adhanSettings.selectedVoice}
-                  onChange={(e) => handleUpdateAdhanSettings({ selectedVoice: e.target.value as any })}
-                  className="w-full py-1.5 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-white"
-                >
-                  {Object.entries(ADHAN_VOICE_SOURCES).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                  Adhan Notification Mode:
-                </label>
-                <select
-                  value={adhanSettings.mode}
-                  onChange={(e) => handleUpdateAdhanSettings({ mode: e.target.value as any })}
-                  className="w-full py-1.5 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-white"
-                >
-                  <option value="adhan_and_notification">Adhan Audio + System Notification</option>
-                  <option value="notification_only">System Notification Only</option>
-                  <option value="silent">Silent Reminder</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                  Adhan Volume ({Math.round(adhanSettings.volume * 100)}%):
-                </label>
-                <input
-                  type="range"
-                  min={0.1}
-                  max={1.0}
-                  step={0.05}
-                  value={adhanSettings.volume}
-                  onChange={(e) => handleUpdateAdhanSettings({ volume: parseFloat(e.target.value) })}
-                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg mt-2"
-                />
-              </div>
-            </div>
-
-            {/* Individual Prayer Toggles */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 flex items-center justify-between flex-wrap gap-2 text-xs">
-              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                Enable Adhan for:
-              </span>
-              {(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const).map(p => (
-                <label key={p} className="flex items-center gap-1.5 cursor-pointer capitalize font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={adhanSettings.enabledPrayers[p]}
-                    onChange={(e) => {
-                      handleUpdateAdhanSettings({
-                        enabledPrayers: {
-                          ...adhanSettings.enabledPrayers,
-                          [p]: e.target.checked
-                        }
-                      });
-                    }}
-                    className="accent-emerald-600 w-3.5 h-3.5 rounded"
-                  />
-                  <span>{p}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* Unified Automatic Adhan System Card (With 5-Prayer Schedule & Test Simulation Mode) */}
+          <AdhanControlPanel
+            prayerTimesOverride={prayerTimes}
+            cityNameOverride={activeLocation.name}
+          />
 
           {/* Dedicated Automatic Iqamah System Card (Distinct from Adhan) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-emerald-500/30 dark:border-emerald-700/50 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${iqamaSettings.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <span className={`w-2 h-2 rounded-full ${iqamaSettings.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <span>Automatic Iqamah System (Qad Qamatis-Salah)</span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
                       {iqamaSettings.enabled ? 'Active' : 'Disabled'}
                     </span>
                   </h3>

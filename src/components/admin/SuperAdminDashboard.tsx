@@ -85,6 +85,7 @@ import { MUEZZIN_VOICES } from '../../data/muezzins';
 import { ISLAMIC_BOOKS, LIBRARY_CATEGORIES } from '../../data/islamicLibrary';
 import { HISNUL_SECTIONS } from '../../data/hisnulMuslimData';
 import { NIGERIAN_STATES, WORLD_CITIES } from '../../services/prayerTimes';
+import { ShatibiyyahAdminStudio } from './ShatibiyyahAdminStudio';
 
 export type AdminTab = 
   | 'overview'
@@ -96,6 +97,7 @@ export type AdminTab =
   | 'reciters'
   | 'adhan'
   | 'library'
+  | 'shatibiyyah'
   | 'tajweed'
   | 'prayer_times'
   | 'feedback'
@@ -428,6 +430,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onExit
     { id: 'reciters', label: 'Reciters Directory', icon: Radio },
     { id: 'adhan', label: 'Adhan & Muezzins', icon: Volume2 },
     { id: 'library', label: 'Islamic Library', icon: Book },
+    { id: 'shatibiyyah', label: 'Shatibiyyah Audio & Sync', icon: BookOpen },
     { id: 'tajweed', label: 'Tajweed Studio', icon: Mic },
     { id: 'prayer_times', label: 'Prayer & Qibla', icon: Compass },
     { id: 'feedback', label: 'User Feedback', icon: MessageSquare, badge: feedbackList.filter(f => f.status === 'pending').length },
@@ -517,7 +520,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onExit
         >
           <div className="p-3 overflow-y-auto space-y-1 flex-1">
             <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Admin Navigation (17 Portals)
+              Admin Navigation (18 Portals)
             </div>
 
             {navigationItems.map((item) => {
@@ -581,6 +584,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onExit
                 {activeTab === 'reciters' && 'Audit reciters, test streaming URLs, disable broken sources.'}
                 {activeTab === 'adhan' && 'Worldwide Muezzins, verified Nigerian mosque recordings.'}
                 {activeTab === 'library' && 'Islamic books, Hadith collections, and Hisnul Muslim sections.'}
+                {activeTab === 'shatibiyyah' && 'Upload authentic Sheikh Okasha Kameny audio parts and mark verified Bayt timestamps.'}
                 {activeTab === 'tajweed' && 'Tajweed Studio diagnostics, speech rules, and recording history.'}
                 {activeTab === 'prayer_times' && 'Worldwide astronomical calculation and Nigerian state coordinates.'}
                 {activeTab === 'feedback' && 'User bug reports, audio problem complaints, and admin replies.'}
@@ -1474,6 +1478,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onExit
               </div>
 
             </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* TAB 10B: SHATIBIYYAH AUDIO & SYNC STUDIO */}
+          {/* ================================================================= */}
+          {activeTab === 'shatibiyyah' && (
+            <ShatibiyyahAdminStudio onFlashMessage={flashMessage} />
           )}
 
           {/* ================================================================= */}

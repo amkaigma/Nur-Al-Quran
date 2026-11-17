@@ -32,7 +32,12 @@ import {
 import { Reciter, SurahMeta } from '../types/quran';
 import { SURAHS, getSurahById } from '../data/surahs';
 import { RECITERS } from '../data/reciters';
-import { calculatePrayerTimes, WORLD_CITIES, getHijriDateString } from '../services/prayerTimes';
+import {
+  calculatePrayerTimes,
+  getActiveLocationMeta,
+  getHijriDateString,
+  PRAYER_CONFIG_UPDATED_EVENT
+} from '../services/prayerTimes';
 import { getStoredProgress, getDailyGoalStatus } from '../services/storage';
 import { AppTab } from './Navbar';
 
@@ -61,18 +66,27 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [dailyGoal, setDailyGoal] = useState(() => getDailyGoalStatus());
   const [copiedHadith, setCopiedHadith] = useState(false);
 
-  // Prayer times state
+  // Prayer times state synced with user's selected location/method/madhhab
   const [prayerData, setPrayerData] = useState(() => {
-    const city = WORLD_CITIES[0]; // Makkah default
-    return calculatePrayerTimes(new Date(), city.lat, city.lng, city.timezone, city.method);
+    const now = new Date();
+    const loc = getActiveLocationMeta(now);
+    return calculatePrayerTimes(now, loc.lat, loc.lng, loc.timezone, loc.method, loc.asrJuristic, loc.adjustments);
   });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const city = WORLD_CITIES[0];
-      setPrayerData(calculatePrayerTimes(new Date(), city.lat, city.lng, city.timezone, city.method));
-    }, 1000);
-    return () => clearInterval(timer);
+    const refresh = () => {
+      const now = new Date();
+      const loc = getActiveLocationMeta(now);
+      setPrayerData(
+        calculatePrayerTimes(now, loc.lat, loc.lng, loc.timezone, loc.method, loc.asrJuristic, loc.adjustments)
+      );
+    };
+    const timer = setInterval(refresh, 1000);
+    window.addEventListener(PRAYER_CONFIG_UPDATED_EVENT, refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener(PRAYER_CONFIG_UPDATED_EVENT, refresh);
+    };
   }, []);
 
   useEffect(() => {

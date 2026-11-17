@@ -8,7 +8,7 @@
       "role": "super_admin",
       "status": "active",
       "createdAt": "2026-11-04T18:28:20.822Z",
-      "lastActiveAt": "2026-11-04T19:00:51.609Z",
+      "lastActiveAt": "2026-11-16T17:59:40.262Z",
       "readingSessionsCount": 42,
       "listeningSessionsCount": 38,
       "tajweedSessionsCount": 15,
@@ -103,6 +103,36 @@
       "email": "abdalkaigama@gmail.com",
       "role": "super_admin",
       "expiresAt": 1793826051609
+    },
+    "da87a48f0668013bf56080662b0b8a1fee4f52f42465e51f95118afb738cdd95": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1794772315275
+    },
+    "a0463fe4c672ecddd172d73a2e1470dcb00f1bbb88a9112968a3b4010c0a5e2f": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1794773305061
+    },
+    "cb478e5f8241a5fa71f03955bded369710cbf79b9499c7e1fd68e93fb22502b1": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1794774746511
+    },
+    "00de0406c3d0445b405da1c40b7ced92fe42d7ed5ee13c9c1352ee8e6cba351a": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1794857780308
+    },
+    "2a863760933ab920d97cf05c3670c42af50757252b55f3526669fb1f97b2c93a": {
+      "userId": "usr_super_admin",
+      "email": "abdalkaigama@gmail.com",
+      "role": "super_admin",
+      "expiresAt": 1794859180262
     }
   },
   "onlinePresences": {
@@ -111,8 +141,8 @@
       "activity": "general"
     },
     "client_ueuul7vq": {
-      "lastPing": 1793818502390,
-      "activity": "general"
+      "lastPing": 1794766075412,
+      "activity": "library"
     }
   },
   "errors": [
@@ -177,6 +207,276 @@
     "daily_goals": true
   },
   "auditLogs": [
+    {
+      "id": "audit_1794851980262_zcv4h",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 0 verified timestamps, cleared 1.",
+      "timestamp": "2026-11-16T17:59:40.262Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794851980256_4bj4t",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 1 verified timestamps, cleared 0.",
+      "timestamp": "2026-11-16T17:59:40.256Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794851980241_gav79",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_YOUTUBE_LINKED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Linked YouTube Cx76SdfINxU",
+      "timestamp": "2026-11-16T17:59:40.241Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794851980176_0xyr8",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-16T17:59:40.176Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580308_09rej",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 0 verified timestamps, cleared 3.",
+      "timestamp": "2026-11-16T17:36:20.308Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580304_czz6i",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-02",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-16T17:36:20.304Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580299_1gyud",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-16T17:36:20.299Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580295_2pi0l",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 3 verified timestamps, cleared 0.",
+      "timestamp": "2026-11-16T17:36:20.295Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580291_n804o",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_IMPORTED",
+      "entity": "Shatibiyyah part-02",
+      "details": "Imported verified audio from http://127.0.0.1:59489/ok.mp3 (0.02 MB)",
+      "timestamp": "2026-11-16T17:36:20.291Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580250_u1gkj",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_UPLOADED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Uploaded probe.mp3 (0.02 MB) — Temporary test verification fixture",
+      "timestamp": "2026-11-16T17:36:20.250Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794850580244_3cwhq",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-16T17:36:20.244Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546511_qe4nx",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 0 verified timestamps, cleared 3.",
+      "timestamp": "2026-11-15T18:32:26.511Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546507_njmuq",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-02",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-15T18:32:26.507Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546503_eoe4k",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-15T18:32:26.503Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546499_bhomm",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 3 verified timestamps, cleared 0.",
+      "timestamp": "2026-11-15T18:32:26.499Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546494_7v73v",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_IMPORTED",
+      "entity": "Shatibiyyah part-02",
+      "details": "Imported verified audio from http://127.0.0.1:52465/ok.mp3 (0.02 MB)",
+      "timestamp": "2026-11-15T18:32:26.494Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546442_zaocy",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_UPLOADED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Uploaded probe.mp3 (0.02 MB) — Temporary test verification fixture",
+      "timestamp": "2026-11-15T18:32:26.442Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794767546436_91xch",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-15T18:32:26.436Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105061_mkwdn",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-11",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-15T18:08:25.061Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105058_4l0qi",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-15T18:08:25.058Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105053_j6vzl",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 0 verified timestamps, cleared 5.",
+      "timestamp": "2026-11-15T18:08:25.053Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105044_u0bjc",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 5 verified timestamps, cleared 0.",
+      "timestamp": "2026-11-15T18:08:25.044Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105033_5imdg",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_UPLOADED",
+      "entity": "Shatibiyyah part-11",
+      "details": "Uploaded part-11.mp3 (0.04 MB) — Temp integration test probe",
+      "timestamp": "2026-11-15T18:08:25.033Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105018_xr4n2",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_UPLOADED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Uploaded part-01.mp3 (0.04 MB) — Temp integration test probe",
+      "timestamp": "2026-11-15T18:08:25.018Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794766105005_e0ymy",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-15T18:08:25.005Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794765115276_9ohiz",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_REMOVED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Removed audio file from part.",
+      "timestamp": "2026-11-15T17:51:55.276Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794765115270_alqit",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 0 verified timestamps, cleared 2.",
+      "timestamp": "2026-11-15T17:51:55.270Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794765115265_zua2r",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_TIMESTAMPS_SAVED",
+      "entity": "Shatibiyyah Sync",
+      "details": "Saved 2 verified timestamps, cleared 0.",
+      "timestamp": "2026-11-15T17:51:55.265Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794765115256_mdynw",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "SHATIBIYYAH_AUDIO_UPLOADED",
+      "entity": "Shatibiyyah part-01",
+      "details": "Uploaded verify_roundtrip.wav (0.00 MB) — API roundtrip verification test",
+      "timestamp": "2026-11-15T17:51:55.256Z",
+      "result": "success"
+    },
+    {
+      "id": "audit_1794765115251_r031n",
+      "adminEmail": "abdalkaigama@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entity": "Auth",
+      "details": "Administrator session initiated for role: super_admin",
+      "timestamp": "2026-11-15T17:51:55.251Z",
+      "result": "success"
+    },
     {
       "id": "audit_1793818851610_5eq5y",
       "adminEmail": "abdalkaigama@gmail.com",
@@ -309,6 +609,6 @@
     "totalQuranReading": 1280,
     "totalQuranListening": 2450,
     "totalTajweedPractice": 640,
-    "totalIslamicLibrary": 890
+    "totalIslamicLibrary": 921
   }
 }

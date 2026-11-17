@@ -31,6 +31,7 @@ import {
   IQAMA_VOICES,
   PrayerKey 
 } from '../services/iqamaService';
+import { AdhanControlPanel } from './AdhanControlPanel';
 
 interface SettingsViewProps {
   isDarkMode: boolean;
@@ -135,6 +136,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ── Section 0: Automatic Adhan Settings & Simulation Mode ── */}
+      <AdhanControlPanel />
 
       {/* ── Section 1: Automatic Iqama Recitation (Highlighted Feature) ── */}
       <div className="bg-white dark:bg-slate-900 border border-emerald-500/30 dark:border-emerald-700/50 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6 relative overflow-hidden">

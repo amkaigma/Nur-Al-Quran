@@ -4,6 +4,17 @@
  * Features complete coverage for all 36 Nigerian States + FCT, and global cities.
  */
 
+export type DailyPrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+
+export interface ScheduledPrayerSlot {
+  formatted: string;
+  time24: string;
+  hour24: number;
+  minute: number;
+  minutesFromMidnight: number;
+  timestampMs: number;
+}
+
 export interface PrayerTimesResult {
   fajr: string;
   sunrise: string;
@@ -11,13 +22,41 @@ export interface PrayerTimesResult {
   asr: string;
   maghrib: string;
   isha: string;
+  dateKey: string;
+  timezoneOffsetHours: number;
+  schedule: {
+    fajr: ScheduledPrayerSlot;
+    sunrise: ScheduledPrayerSlot;
+    dhuhr: ScheduledPrayerSlot;
+    asr: ScheduledPrayerSlot;
+    maghrib: ScheduledPrayerSlot;
+    isha: ScheduledPrayerSlot;
+  };
   nextPrayer: {
     name: 'Fajr' | 'Sunrise' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
     time: string;
     arabicName: string;
     remainingMinutes: number;
     remainingSeconds: number;
+    timestampMs: number;
   };
+}
+
+export interface PrayerLocationConfig {
+  regionTab: 'nigeria' | 'international';
+  selectedCityId: string;
+  customCoords: { lat: number; lng: number; name: string } | null;
+  calculationMethod: CalculationMethodId;
+  asrJuristic: 'standard' | 'hanafi';
+  minuteAdjustments: {
+    fajr: number;
+    sunrise: number;
+    dhuhr: number;
+    asr: number;
+    maghrib: number;
+    isha: number;
+  };
+  hijriOffset: number;
 }
 
 export interface CityPreset {
@@ -189,6 +228,35 @@ export function calculateDistanceToKaabaKm(lat: number, lng: number): number {
 }
 
 /**
+ * Parses either 12-hour ("5:12 AM", "12:34 PM") or 24-hour ("17:12") strings safely without NaN.
+ */
+export function parsePrayerTime12hOr24h(timeStr: string): { hour24: number; minute: number } | null {
+  if (!timeStr) return null;
+  const trimmed = timeStr.trim();
+  const match12 = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(trimmed);
+  if (match12) {
+    let hour = parseInt(match12[1], 10);
+    const minute = parseInt(match12[2], 10);
+    const period = match12[3].toUpperCase();
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+    if (period === 'AM') {
+      if (hour === 12) hour = 0;
+    } else {
+      if (hour !== 12) hour += 12;
+    }
+    return { hour24: hour % 24, minute: minute % 60 };
+  }
+  const match24 = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
+  if (match24) {
+    const hour = parseInt(match24[1], 10);
+    const minute = parseInt(match24[2], 10);
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+    return { hour24: hour % 24, minute: minute % 60 };
+  }
+  return null;
+}
+
+/**
  * Calculates astronomical prayer times for a given date, coordinates, method, and adjustments.
  */
 export function calculatePrayerTimes(
@@ -201,12 +269,20 @@ export function calculatePrayerTimes(
   adjustments?: { fajr?: number; sunrise?: number; dhuhr?: number; asr?: number; maghrib?: number; isha?: number }
 ): PrayerTimesResult {
   const method = CALCULATION_METHODS[methodId] || CALCULATION_METHODS.egyptian;
-  
+
   const tz = timezoneOffsetHours !== undefined ? timezoneOffsetHours : -date.getTimezoneOffset() / 60;
 
-  // Day of year calculation
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  // Compute wall-clock date/time in the target location's timezone
+  const wallNow = new Date(date.getTime() + tz * 3600000);
+  const year = wallNow.getUTCFullYear();
+  const month = wallNow.getUTCMonth();
+  const day = wallNow.getUTCDate();
+  const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  // Day of year calculation in target timezone
+  const startOfYearUtc = Date.UTC(year, 0, 1);
+  const todayMidnightUtc = Date.UTC(year, month, day);
+  const dayOfYear = Math.floor((todayMidnightUtc - startOfYearUtc) / 86400000) + 1;
 
   // Fractional year in radians
   const gamma = (2 * Math.PI / 365) * (dayOfYear - 1 + (12 - tz) / 24);
@@ -279,58 +355,76 @@ export function calculatePrayerTimes(
   const finalMaghrib = applyAdj(maghribHours, adj.maghrib);
   const finalIsha = applyAdj(ishaHours, adj.isha);
 
-  const formatTime = (hours: number): string => {
-    let h = (hours % 24 + 24) % 24;
-    const hour = Math.floor(h);
-    const minute = Math.floor((h - hour) * 60);
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const buildSlot = (hours: number): ScheduledPrayerSlot => {
+    const normalized = ((hours % 24) + 24) % 24;
+    const totalMinutes = Math.round(normalized * 60) % 1440;
+    const hour24 = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+    const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
     const displayMinute = minute.toString().padStart(2, '0');
-    return `${displayHour}:${displayMinute} ${period}`;
+    const formatted = `${displayHour}:${displayMinute} ${period}`;
+    const time24 = `${hour24.toString().padStart(2, '0')}:${displayMinute}`;
+    const timestampMs = Date.UTC(year, month, day, hour24, minute, 0, 0) - tz * 3600000;
+    return {
+      formatted,
+      time24,
+      hour24,
+      minute,
+      minutesFromMidnight: totalMinutes,
+      timestampMs
+    };
   };
 
-  const toMinutes = (hours: number): number => {
-    let h = (hours % 24 + 24) % 24;
-    return Math.floor(h * 60);
+  const schedule = {
+    fajr: buildSlot(finalFajr),
+    sunrise: buildSlot(finalSunrise),
+    dhuhr: buildSlot(finalDhuhr),
+    asr: buildSlot(finalAsr),
+    maghrib: buildSlot(finalMaghrib),
+    isha: buildSlot(finalIsha)
   };
 
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const currentSeconds = now.getSeconds();
-
+  const nowMs = date.getTime();
   const prayers = [
-    { name: 'Fajr' as const, arabicName: 'الفجر', minutes: toMinutes(finalFajr), formatted: formatTime(finalFajr) },
-    { name: 'Sunrise' as const, arabicName: 'الشروق', minutes: toMinutes(finalSunrise), formatted: formatTime(finalSunrise) },
-    { name: 'Dhuhr' as const, arabicName: 'الظهر', minutes: toMinutes(finalDhuhr), formatted: formatTime(finalDhuhr) },
-    { name: 'Asr' as const, arabicName: 'العصر', minutes: toMinutes(finalAsr), formatted: formatTime(finalAsr) },
-    { name: 'Maghrib' as const, arabicName: 'المغرب', minutes: toMinutes(finalMaghrib), formatted: formatTime(finalMaghrib) },
-    { name: 'Isha' as const, arabicName: 'العشاء', minutes: toMinutes(finalIsha), formatted: formatTime(finalIsha) }
+    { name: 'Fajr' as const, arabicName: 'الفجر', slot: schedule.fajr },
+    { name: 'Sunrise' as const, arabicName: 'الشروق', slot: schedule.sunrise },
+    { name: 'Dhuhr' as const, arabicName: 'الظهر', slot: schedule.dhuhr },
+    { name: 'Asr' as const, arabicName: 'العصر', slot: schedule.asr },
+    { name: 'Maghrib' as const, arabicName: 'المغرب', slot: schedule.maghrib },
+    { name: 'Isha' as const, arabicName: 'العشاء', slot: schedule.isha }
   ];
 
-  let next = prayers.find(p => p.minutes > currentMinutes);
-  let remainingMinutes = 0;
-  let remainingSeconds = 60 - currentSeconds;
-
+  let next = prayers.find(p => p.slot.timestampMs > nowMs);
+  let targetMs: number;
   if (next) {
-    remainingMinutes = next.minutes - currentMinutes - 1;
+    targetMs = next.slot.timestampMs;
   } else {
     next = prayers[0];
-    remainingMinutes = (24 * 60 - currentMinutes) + prayers[0].minutes - 1;
+    targetMs = next.slot.timestampMs + 86400000;
   }
 
+  const diffTotalSeconds = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
+  const remainingMinutes = Math.floor(diffTotalSeconds / 60);
+  const remainingSeconds = diffTotalSeconds % 60;
+
   return {
-    fajr: formatTime(finalFajr),
-    sunrise: formatTime(finalSunrise),
-    dhuhr: formatTime(finalDhuhr),
-    asr: formatTime(finalAsr),
-    maghrib: formatTime(finalMaghrib),
-    isha: formatTime(finalIsha),
+    fajr: schedule.fajr.formatted,
+    sunrise: schedule.sunrise.formatted,
+    dhuhr: schedule.dhuhr.formatted,
+    asr: schedule.asr.formatted,
+    maghrib: schedule.maghrib.formatted,
+    isha: schedule.isha.formatted,
+    dateKey,
+    timezoneOffsetHours: tz,
+    schedule,
     nextPrayer: {
       name: next.name,
       arabicName: next.arabicName,
-      time: next.formatted,
-      remainingMinutes: Math.max(0, remainingMinutes),
-      remainingSeconds: Math.max(0, remainingSeconds)
+      time: next.slot.formatted,
+      remainingMinutes,
+      remainingSeconds,
+      timestampMs: targetMs
     }
   };
 }
@@ -352,10 +446,12 @@ export function generateMonthlyPrayerTimes(
   const timetable = [];
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month, day, 12, 0, 0);
+    // Anchor at 12:00 PM in target city's timezone
+    const d = new Date(Date.UTC(year, month, day, 12, 0, 0) - timezone * 3600000);
+    const displayDate = new Date(year, month, day, 12, 0, 0);
     const times = calculatePrayerTimes(d, lat, lng, timezone, methodId, asrJuristic, adjustments);
-    const hijriString = getHijriDateString(d);
-    const dateString = `${day} ${d.toLocaleString('default', { month: 'short' })}`;
+    const hijriString = getHijriDateString(displayDate);
+    const dateString = `${day} ${displayDate.toLocaleString('default', { month: 'short' })}`;
 
     timetable.push({
       day,
@@ -384,3 +480,104 @@ export function getHijriDateString(date: Date, offsetDays: number = 0): string {
     return '15 Shawwal 1447 AH';
   }
 }
+
+// ============================================================================
+// PERSISTENT USER PRAYER LOCATION & CALCULATION CONFIG (SINGLE SOURCE OF TRUTH)
+// ============================================================================
+
+export const PRAYER_CONFIG_STORAGE_KEY = 'nur_quran_prayer_location_config';
+export const PRAYER_CONFIG_UPDATED_EVENT = 'nur_prayer_config_updated';
+
+export const DEFAULT_PRAYER_LOCATION_CONFIG: PrayerLocationConfig = {
+  regionTab: 'nigeria',
+  selectedCityId: 'ng_fct',
+  customCoords: null,
+  calculationMethod: 'egyptian',
+  asrJuristic: 'standard',
+  minuteAdjustments: {
+    fajr: 0,
+    sunrise: 0,
+    dhuhr: 0,
+    asr: 0,
+    maghrib: 0,
+    isha: 0
+  },
+  hijriOffset: 0
+};
+
+export function getPrayerLocationConfig(): PrayerLocationConfig {
+  try {
+    const saved = localStorage.getItem(PRAYER_CONFIG_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        ...DEFAULT_PRAYER_LOCATION_CONFIG,
+        ...parsed,
+        minuteAdjustments: {
+          ...DEFAULT_PRAYER_LOCATION_CONFIG.minuteAdjustments,
+          ...(parsed.minuteAdjustments || {})
+        }
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load prayer location config:', e);
+  }
+  return DEFAULT_PRAYER_LOCATION_CONFIG;
+}
+
+export function savePrayerLocationConfig(config: PrayerLocationConfig): void {
+  try {
+    localStorage.setItem(PRAYER_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(PRAYER_CONFIG_UPDATED_EVENT, { detail: config }));
+    }
+  } catch (e) {
+    console.warn('Failed to save prayer location config:', e);
+  }
+}
+
+export function getActiveLocationMeta(
+  now: Date = new Date(),
+  config: PrayerLocationConfig = getPrayerLocationConfig()
+): {
+  lat: number;
+  lng: number;
+  name: string;
+  country: string;
+  timezone: number;
+  method: CalculationMethodId;
+  asrJuristic: 'standard' | 'hanafi';
+  adjustments: PrayerLocationConfig['minuteAdjustments'];
+  hijriOffset: number;
+  isGps: boolean;
+} {
+  if (config.customCoords) {
+    return {
+      lat: config.customCoords.lat,
+      lng: config.customCoords.lng,
+      name: config.customCoords.name || 'My GPS Location',
+      country: 'Device Local Timezone',
+      timezone: -now.getTimezoneOffset() / 60,
+      method: config.calculationMethod,
+      asrJuristic: config.asrJuristic,
+      adjustments: config.minuteAdjustments,
+      hijriOffset: config.hijriOffset,
+      isGps: true
+    };
+  }
+
+  const city = WORLD_CITIES.find(c => c.id === config.selectedCityId) || NIGERIAN_STATES[0];
+  return {
+    lat: city.lat,
+    lng: city.lng,
+    name: city.name,
+    country: city.country,
+    timezone: city.timezone,
+    method: config.calculationMethod || city.method,
+    asrJuristic: config.asrJuristic,
+    adjustments: config.minuteAdjustments,
+    hijriOffset: config.hijriOffset,
+    isGps: false
+  };
+}
+

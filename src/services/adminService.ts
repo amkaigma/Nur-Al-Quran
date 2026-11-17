@@ -379,3 +379,116 @@ export async function reportClientError(feature: string, message: string, detail
     // Ignore
   }
 }
+
+// 11. Matn Ash-Shatibiyyah Audio & Bayt Timestamp Sync APIs
+export async function fetchShatibiyyahSyncState() {
+  const res = await fetch('/api/shatibiyyah/sync-state');
+  if (!res.ok) {
+    throw new Error('Failed to load Matn Ash-Shatibiyyah sync state');
+  }
+  return res.json();
+}
+
+export async function saveShatibiyyahPartMeta(part: {
+  id?: string;
+  order?: number;
+  titleArabic: string;
+  titleEnglish?: string;
+  startBayt: number;
+  endBayt: number;
+  sourceAttribution?: string;
+}) {
+  return adminFetch('/api/admin/shatibiyyah/parts', {
+    method: 'POST',
+    body: JSON.stringify(part)
+  });
+}
+
+export async function uploadShatibiyyahPartAudio(
+  partId: string,
+  file: File,
+  options: { durationSeconds?: number; attribution: string; rightsConfirmed: boolean }
+) {
+  const token = getStoredAdminToken();
+  const headers: Record<string, string> = {
+    'Content-Type': file.type || 'audio/mpeg',
+    'x-filename': encodeURIComponent(file.name),
+    'x-mime-type': file.type || 'audio/mpeg',
+    'x-duration': String(options.durationSeconds || 0),
+    'x-attribution': encodeURIComponent(options.attribution),
+    'x-rights-confirmed': options.rightsConfirmed ? 'true' : 'false'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`/api/admin/shatibiyyah/parts/${encodeURIComponent(partId)}/upload`, {
+    method: 'POST',
+    headers,
+    body: file
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    clearAdminAuth();
+    throw new Error('Unauthorized: Please log in again as Super Administrator.');
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Audio upload failed (${res.status})`);
+  }
+  return data;
+}
+
+export async function importShatibiyyahPartFromUrl(
+  partId: string,
+  payload: {
+    url: string;
+    attribution: string;
+    rightsConfirmed: boolean;
+    durationSeconds?: number;
+  }
+) {
+  return adminFetch(`/api/admin/shatibiyyah/parts/${encodeURIComponent(partId)}/import-url`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function setShatibiyyahPartYoutubeSource(
+  partId: string,
+  youtubeUrlOrId: string,
+  attribution?: string
+) {
+  return adminFetch(`/api/admin/shatibiyyah/parts/${encodeURIComponent(partId)}/youtube`, {
+    method: 'POST',
+    body: JSON.stringify({ youtubeUrlOrId, attribution })
+  });
+}
+
+export async function deleteShatibiyyahPartAudio(partId: string, clearCompletely: boolean = false) {
+  const qs = clearCompletely ? '?clear=1' : '';
+  return adminFetch(`/api/admin/shatibiyyah/parts/${encodeURIComponent(partId)}/audio${qs}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function saveShatibiyyahTimestamps(
+  entries: Array<{
+    baytId?: string;
+    baytNumber: number;
+    arabicText?: string;
+    chapterName?: string;
+    recordingId?: string;
+    audioPartId: string;
+    audioStart: number | null;
+    audioEnd: number | null;
+    clear?: boolean;
+  }>
+) {
+  return adminFetch('/api/admin/shatibiyyah/timestamps', {
+    method: 'POST',
+    body: JSON.stringify({ entries })
+  });
+}
+

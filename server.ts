@@ -1262,6 +1262,742 @@ app.get('/api/admin/adhan/verify-all', requireSuperAdmin, async (req: Request, r
 });
 
 // ============================================================================
+// MATN ASH-SHATIBIYYAH — AUDIO PARTS & BAYT TIMESTAMP SYNCHRONIZATION STORE
+// ============================================================================
+const SHATIBIYYAH_AUDIO_DIR = path.join(DATA_DIR, 'shatibiyyah-audio');
+const SHATIBIYYAH_SYNC_FILE = path.join(DATA_DIR, 'shatibiyyah-sync.json');
+const SHATIBIYYAH_COMPLETE_JSON = path.join(__dirname, 'src', 'data', 'shatibiyyahComplete.json');
+
+if (!fs.existsSync(SHATIBIYYAH_AUDIO_DIR)) {
+  fs.mkdirSync(SHATIBIYYAH_AUDIO_DIR, { recursive: true });
+}
+
+const DEFAULT_SHATIBIYYAH_YOUTUBE_ID = 'Cx76SdfINxU';
+const DEFAULT_SHATIBIYYAH_YOUTUBE_URL = 'https://www.youtube.com/watch?v=Cx76SdfINxU';
+
+interface ServerShatibiyyahAudioPart {
+  id: string;
+  order: number;
+  titleArabic: string;
+  titleEnglish: string;
+  startBayt: number;
+  endBayt: number;
+  reciterArabic: string;
+  reciterEnglish: string;
+  sourceType?: 'youtube' | 'audio';
+  youtubeVideoId?: string | null;
+  youtubeUrl?: string | null;
+  hasAudio: boolean;
+  audioUrl: string | null;
+  filename?: string | null;
+  durationSeconds: number;
+  fileSizeBytes: number;
+  mimeType: string | null;
+  sourceAttribution: string;
+  verifiedAuthentic: boolean;
+  uploadedAt?: string;
+  uploadedBy?: string;
+}
+
+interface ServerShatibiyyahTimestampEntry {
+  baytId?: string;
+  baytNumber: number;
+  arabicText?: string;
+  chapterName?: string;
+  recordingId?: string;
+  audioPartId: string;
+  audioStart: number;
+  audioEnd: number;
+  verifiedByAdmin: boolean;
+  verifiedAt?: string;
+}
+
+interface ServerShatibiyyahSyncStore {
+  reciterArabic: string;
+  reciterEnglish: string;
+  parts: ServerShatibiyyahAudioPart[];
+  timestamps: Record<string, ServerShatibiyyahTimestampEntry>;
+}
+
+const shatibiyyahBaytMetaLookup = new Map<
+  number,
+  { id: string; arabicText: string; chapterName: string }
+>();
+
+function loadDefaultShatibiyyahParts(): ServerShatibiyyahAudioPart[] {
+  try {
+    if (fs.existsSync(SHATIBIYYAH_COMPLETE_JSON)) {
+      const parsed = JSON.parse(fs.readFileSync(SHATIBIYYAH_COMPLETE_JSON, 'utf-8'));
+      if (Array.isArray(parsed.abyat)) {
+        for (const b of parsed.abyat) {
+          shatibiyyahBaytMetaLookup.set(Number(b.baytNumber), {
+            id: String(b.id),
+            arabicText: String(b.fullArabic || `${b.shatrA} ۞ ${b.shatrB}`),
+            chapterName: String(b.babTitle || '')
+          });
+        }
+      }
+      if (Array.isArray(parsed.defaultAudioParts)) {
+        return parsed.defaultAudioParts.map((p: ServerShatibiyyahAudioPart) => ({
+          ...p,
+          sourceType: 'youtube',
+          youtubeVideoId: DEFAULT_SHATIBIYYAH_YOUTUBE_ID,
+          youtubeUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+          hasAudio: true,
+          audioUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+          mimeType: 'video/youtube',
+          sourceAttribution: `Official YouTube Embed — Sheikh Okasha Kameny (${DEFAULT_SHATIBIYYAH_YOUTUBE_URL})`,
+          verifiedAuthentic: true
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read defaultAudioParts from shatibiyyahComplete.json:', err);
+  }
+  return [];
+}
+
+function loadShatibiyyahSyncStore(): ServerShatibiyyahSyncStore {
+  const defaultParts = loadDefaultShatibiyyahParts();
+  try {
+    if (fs.existsSync(SHATIBIYYAH_SYNC_FILE)) {
+      const parsed: ServerShatibiyyahSyncStore = JSON.parse(fs.readFileSync(SHATIBIYYAH_SYNC_FILE, 'utf-8'));
+      let dirty = false;
+      parsed.parts = (parsed.parts || []).map((part) => {
+        if (part.hasAudio && part.filename) {
+          const safeName = path.basename(part.filename);
+          const fullPath = path.join(SHATIBIYYAH_AUDIO_DIR, safeName);
+          if (!fs.existsSync(fullPath)) {
+            dirty = true;
+            return {
+              ...part,
+              sourceType: 'youtube',
+              youtubeVideoId: DEFAULT_SHATIBIYYAH_YOUTUBE_ID,
+              youtubeUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+              hasAudio: true,
+              audioUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+              filename: null,
+              fileSizeBytes: 0,
+              mimeType: 'video/youtube',
+              verifiedAuthentic: true,
+              sourceAttribution: `Official YouTube Embed — Sheikh Okasha Kameny (${DEFAULT_SHATIBIYYAH_YOUTUBE_URL})`
+            };
+          }
+          return { ...part, sourceType: 'audio' };
+        }
+        // Connect unconfigured / awaiting-audio parts cleanly to the user-provided Sheikh Okasha Kameny YouTube video
+        if (!part.filename && (!part.sourceType || (!part.hasAudio && !part.youtubeVideoId))) {
+          dirty = true;
+          return {
+            ...part,
+            sourceType: 'youtube',
+            youtubeVideoId: DEFAULT_SHATIBIYYAH_YOUTUBE_ID,
+            youtubeUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+            hasAudio: true,
+            audioUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+            mimeType: 'video/youtube',
+            verifiedAuthentic: true,
+            sourceAttribution: `Official YouTube Embed — Sheikh Okasha Kameny (${DEFAULT_SHATIBIYYAH_YOUTUBE_URL})`
+          };
+        }
+        return part;
+      });
+      if (dirty) {
+        fs.writeFileSync(SHATIBIYYAH_SYNC_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+      }
+      return parsed;
+    }
+  } catch (err) {
+    console.warn('Failed to load shatibiyyah-sync.json, initializing clean store:', err);
+  }
+
+  const initial: ServerShatibiyyahSyncStore = {
+    reciterArabic: 'الشيخ عكاشة بن حسن كَمِينِي',
+    reciterEnglish: 'Sheikh Okasha Kameny',
+    parts: defaultParts,
+    timestamps: {}
+  };
+  fs.writeFileSync(SHATIBIYYAH_SYNC_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+  return initial;
+}
+
+let shatibiyyahSyncStore: ServerShatibiyyahSyncStore = loadShatibiyyahSyncStore();
+
+function saveShatibiyyahSyncStore(): void {
+  fs.writeFileSync(SHATIBIYYAH_SYNC_FILE, JSON.stringify(shatibiyyahSyncStore, null, 2), 'utf-8');
+}
+
+// Public: Get current Shatibiyyah audio parts & verified Bayt timestamps
+app.get('/api/shatibiyyah/sync-state', (req: Request, res: Response) => {
+  const sortedParts = [...shatibiyyahSyncStore.parts].sort((a, b) => a.order - b.order);
+  const uploadedPartsCount = sortedParts.filter((p) => p.hasAudio && !!p.audioUrl).length;
+  const verifiedTimestampsCount = Object.keys(shatibiyyahSyncStore.timestamps).length;
+
+  res.json({
+    reciterArabic: shatibiyyahSyncStore.reciterArabic,
+    reciterEnglish: shatibiyyahSyncStore.reciterEnglish,
+    defaultYoutubeVideoId: DEFAULT_SHATIBIYYAH_YOUTUBE_ID,
+    defaultYoutubeUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+    parts: sortedParts,
+    timestamps: shatibiyyahSyncStore.timestamps,
+    stats: {
+      totalBayts: 1173,
+      uploadedPartsCount,
+      totalPartsCount: sortedParts.length,
+      verifiedTimestampsCount
+    }
+  });
+});
+
+// Public: Stream or Download an authorized uploaded Sheikh Okasha Kameny audio part (supports HTTP Range)
+app.get('/api/shatibiyyah/audio-file/:partId', (req: Request, res: Response) => {
+  const { partId } = req.params;
+  const part = shatibiyyahSyncStore.parts.find((p) => p.id === partId);
+
+  if (!part || !part.hasAudio || !part.filename) {
+    res.status(404).json({
+      error: 'Authorized Sheikh Okasha Kameny recording for this part has not been uploaded yet.'
+    });
+    return;
+  }
+
+  const safeName = path.basename(part.filename);
+  const filePath = path.join(SHATIBIYYAH_AUDIO_DIR, safeName);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'Audio file missing from storage.' });
+    return;
+  }
+
+  const stat = fs.statSync(filePath);
+  const total = stat.size;
+  const mimeType = part.mimeType || 'audio/mpeg';
+  const isDownload = req.query.download === '1' || req.query.download === 'true';
+
+  if (isDownload) {
+    const ext = path.extname(safeName) || '.mp3';
+    const downloadName = `Matn_Ash_Shatibiyyah_${part.id}_Sheikh_Okasha_Kameny${ext}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+  }
+
+  const range = req.headers.range;
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+    if (isNaN(start) || isNaN(end) || start >= total || end >= total || start > end) {
+      res.status(416).setHeader('Content-Range', `bytes */${total}`).end();
+      return;
+    }
+    const chunkSize = end - start + 1;
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=86400'
+    });
+    fs.createReadStream(filePath, { start, end }).pipe(res);
+  } else {
+    res.writeHead(200, {
+      'Content-Length': total,
+      'Accept-Ranges': 'bytes',
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=86400'
+    });
+    fs.createReadStream(filePath).pipe(res);
+  }
+});
+
+// Super Admin: Create or update an audio part's metadata & Bayt range
+app.post('/api/admin/shatibiyyah/parts', requireSuperAdmin, (req: Request, res: Response) => {
+  const adminUser = (req as any).adminUser as AdminUser;
+  const { id, order, titleArabic, titleEnglish, startBayt, endBayt, sourceAttribution } = req.body;
+
+  if (!titleArabic || typeof startBayt !== 'number' || typeof endBayt !== 'number') {
+    res.status(400).json({ error: 'titleArabic, startBayt, and endBayt are required.' });
+    return;
+  }
+  if (startBayt < 1 || endBayt > 1173 || startBayt > endBayt) {
+    res.status(400).json({ error: 'Bayt range must be within 1..1173 with startBayt <= endBayt.' });
+    return;
+  }
+
+  const partId = id && typeof id === 'string' ? id.trim() : `part-${Date.now()}`;
+  const existingIdx = shatibiyyahSyncStore.parts.findIndex((p) => p.id === partId);
+
+  if (existingIdx >= 0) {
+    const existing = shatibiyyahSyncStore.parts[existingIdx];
+    shatibiyyahSyncStore.parts[existingIdx] = {
+      ...existing,
+      order: typeof order === 'number' ? order : existing.order,
+      titleArabic: titleArabic.trim(),
+      titleEnglish: (titleEnglish || existing.titleEnglish || '').trim(),
+      startBayt,
+      endBayt,
+      sourceAttribution: sourceAttribution !== undefined ? String(sourceAttribution) : existing.sourceAttribution
+    };
+  } else {
+    shatibiyyahSyncStore.parts.push({
+      id: partId,
+      order: typeof order === 'number' ? order : shatibiyyahSyncStore.parts.length + 1,
+      titleArabic: titleArabic.trim(),
+      titleEnglish: (titleEnglish || titleArabic).trim(),
+      startBayt,
+      endBayt,
+      reciterArabic: shatibiyyahSyncStore.reciterArabic,
+      reciterEnglish: shatibiyyahSyncStore.reciterEnglish,
+      hasAudio: false,
+      audioUrl: null,
+      filename: null,
+      durationSeconds: 0,
+      fileSizeBytes: 0,
+      mimeType: null,
+      sourceAttribution: sourceAttribution || 'Awaiting authorized Sheikh Okasha Kameny studio recording upload',
+      verifiedAuthentic: false
+    });
+  }
+
+  shatibiyyahSyncStore.parts.sort((a, b) => a.order - b.order);
+  saveShatibiyyahSyncStore();
+  logAuditAction(adminUser.email, 'SHATIBIYYAH_PART_SAVED', `Shatibiyyah ${partId}`, `Range: ${startBayt}-${endBayt}`);
+  res.json({ success: true, parts: shatibiyyahSyncStore.parts });
+});
+
+// Super Admin: Upload authorized Sheikh Okasha Kameny audio file (raw binary body up to 250MB)
+app.post(
+  '/api/admin/shatibiyyah/parts/:partId/upload',
+  requireSuperAdmin,
+  express.raw({ type: '*/*', limit: '250mb' }),
+  (req: Request, res: Response) => {
+    const adminUser = (req as any).adminUser as AdminUser;
+    const { partId } = req.params;
+    const partIdx = shatibiyyahSyncStore.parts.findIndex((p) => p.id === partId);
+    if (partIdx === -1) {
+      res.status(404).json({ error: `Audio part '${partId}' not found.` });
+      return;
+    }
+
+    const buffer = req.body;
+    if (!Buffer.isBuffer(buffer) || buffer.length < 1024) {
+      res.status(400).json({ error: 'Valid audio binary payload (> 1 KB) is required.' });
+      return;
+    }
+
+    const rawFilename = decodeURIComponent(String(req.headers['x-filename'] || `${partId}.mp3`));
+    const extMatch = path.extname(rawFilename).toLowerCase();
+    const allowedExts = ['.mp3', '.m4a', '.wav', '.ogg', '.aac', '.webm', '.flac'];
+    const ext = allowedExts.includes(extMatch) ? extMatch : '.mp3';
+
+    const mimeHeader = String(req.headers['x-mime-type'] || 'audio/mpeg').split(';')[0].trim();
+    const mimeType = mimeHeader.startsWith('audio/') ? mimeHeader : 'audio/mpeg';
+    const durationHeader = parseFloat(String(req.headers['x-duration'] || '0'));
+    const durationSeconds = Number.isFinite(durationHeader) && durationHeader > 0 ? Math.round(durationHeader * 10) / 10 : 0;
+    const attribution = decodeURIComponent(
+      String(req.headers['x-attribution'] || 'Authorized Sheikh Okasha Kameny studio recording uploaded by Super Admin')
+    );
+    const rightsConfirmed = String(req.headers['x-rights-confirmed'] || 'true') === 'true';
+
+    if (!rightsConfirmed) {
+      res.status(400).json({ error: 'Rights and Sheikh Okasha Kameny authenticity confirmation is required.' });
+      return;
+    }
+
+    // Delete previous audio file for this part if present
+    const prevPart = shatibiyyahSyncStore.parts[partIdx];
+    if (prevPart.filename) {
+      const oldPath = path.join(SHATIBIYYAH_AUDIO_DIR, path.basename(prevPart.filename));
+      if (fs.existsSync(oldPath)) {
+        try {
+          fs.unlinkSync(oldPath);
+        } catch {
+          // ignore cleanup failure
+        }
+      }
+    }
+
+    const storedFilename = `${partId}_${Date.now()}${ext}`;
+    const storedPath = path.join(SHATIBIYYAH_AUDIO_DIR, storedFilename);
+    fs.writeFileSync(storedPath, buffer);
+
+    const updatedPart: ServerShatibiyyahAudioPart = {
+      ...prevPart,
+      sourceType: 'audio',
+      youtubeVideoId: null,
+      youtubeUrl: null,
+      hasAudio: true,
+      audioUrl: `/api/shatibiyyah/audio-file/${encodeURIComponent(partId)}`,
+      filename: storedFilename,
+      fileSizeBytes: buffer.length,
+      durationSeconds,
+      mimeType,
+      sourceAttribution: attribution,
+      verifiedAuthentic: true,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: adminUser.email
+    };
+
+    shatibiyyahSyncStore.parts[partIdx] = updatedPart;
+    saveShatibiyyahSyncStore();
+    logAuditAction(
+      adminUser.email,
+      'SHATIBIYYAH_AUDIO_UPLOADED',
+      `Shatibiyyah ${partId}`,
+      `Uploaded ${rawFilename} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB) — ${attribution}`
+    );
+
+    res.json({ success: true, part: updatedPart });
+  }
+);
+
+// Super Admin: Import & verify an authorized Sheikh Okasha Kameny audio recording from a direct remote URL
+app.post(
+  '/api/admin/shatibiyyah/parts/:partId/import-url',
+  requireSuperAdmin,
+  async (req: Request, res: Response) => {
+    const adminUser = (req as any).adminUser as AdminUser;
+    const { partId } = req.params;
+    const { url, attribution, rightsConfirmed, durationSeconds } = req.body || {};
+
+    const partIdx = shatibiyyahSyncStore.parts.findIndex((p) => p.id === partId);
+    if (partIdx === -1) {
+      res.status(404).json({ error: `Audio part '${partId}' not found.` });
+      return;
+    }
+
+    if (!rightsConfirmed) {
+      res.status(400).json({ error: 'Rights and Sheikh Okasha Kameny authenticity confirmation is required.' });
+      return;
+    }
+
+    if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
+      res.status(400).json({ error: 'A valid http:// or https:// direct audio URL is required.' });
+      return;
+    }
+
+    const cleanUrl = url.trim();
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      const upstream = await fetch(cleanUrl, {
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        redirect: 'follow',
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      if (!upstream.ok) {
+        res.status(400).json({ error: `Remote server returned HTTP ${upstream.status}. Audio file not found.` });
+        return;
+      }
+
+      const ct = (upstream.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('text/html') || ct.includes('application/json') || ct.includes('text/plain')) {
+        res.status(400).json({
+          error: `URL returned '${ct}' instead of a valid audio stream. Provide a direct MP3/M4A/WAV audio file URL.`
+        });
+        return;
+      }
+
+      const arrBuf = await upstream.arrayBuffer();
+      const buffer = Buffer.from(arrBuf);
+      if (buffer.length < 1024) {
+        res.status(400).json({ error: 'Downloaded file is too small (< 1 KB) to be a valid recitation.' });
+        return;
+      }
+
+      const pathname = new URL(cleanUrl).pathname;
+      const extMatch = path.extname(pathname).toLowerCase();
+      const allowedExts = ['.mp3', '.m4a', '.wav', '.ogg', '.aac', '.webm', '.flac'];
+      const ext = allowedExts.includes(extMatch)
+        ? extMatch
+        : ct.includes('mp4') || ct.includes('m4a')
+        ? '.m4a'
+        : ct.includes('wav')
+        ? '.wav'
+        : ct.includes('ogg')
+        ? '.ogg'
+        : '.mp3';
+
+      const prevPart = shatibiyyahSyncStore.parts[partIdx];
+      if (prevPart.filename) {
+        const oldPath = path.join(SHATIBIYYAH_AUDIO_DIR, path.basename(prevPart.filename));
+        if (fs.existsSync(oldPath)) {
+          try {
+            fs.unlinkSync(oldPath);
+          } catch {
+            // ignore cleanup failure
+          }
+        }
+      }
+
+      const storedFilename = `${partId}_${Date.now()}${ext}`;
+      const storedPath = path.join(SHATIBIYYAH_AUDIO_DIR, storedFilename);
+      fs.writeFileSync(storedPath, buffer);
+
+      const cleanMime = ct.startsWith('audio/') ? ct.split(';')[0].trim() : 'audio/mpeg';
+      const parsedDur = Number(durationSeconds);
+      const safeDuration = Number.isFinite(parsedDur) && parsedDur > 0 ? Math.round(parsedDur * 10) / 10 : 0;
+      const cleanAttribution =
+        typeof attribution === 'string' && attribution.trim()
+          ? attribution.trim()
+          : `Authorized URL import (${new URL(cleanUrl).hostname})`;
+
+      const updatedPart: ServerShatibiyyahAudioPart = {
+        ...prevPart,
+        sourceType: 'audio',
+        youtubeVideoId: null,
+        youtubeUrl: null,
+        hasAudio: true,
+        audioUrl: `/api/shatibiyyah/audio-file/${encodeURIComponent(partId)}`,
+        filename: storedFilename,
+        fileSizeBytes: buffer.length,
+        durationSeconds: safeDuration,
+        mimeType: cleanMime,
+        sourceAttribution: cleanAttribution,
+        verifiedAuthentic: true,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: adminUser.email
+      };
+
+      shatibiyyahSyncStore.parts[partIdx] = updatedPart;
+      saveShatibiyyahSyncStore();
+      logAuditAction(
+        adminUser.email,
+        'SHATIBIYYAH_AUDIO_IMPORTED',
+        `Shatibiyyah ${partId}`,
+        `Imported verified audio from ${cleanUrl} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB)`
+      );
+
+      res.json({ success: true, part: updatedPart });
+    } catch (err: any) {
+      res.status(400).json({ error: `Failed to fetch/verify remote audio: ${err?.message || 'Network error'}` });
+    }
+  }
+);
+
+// Super Admin: Connect or update a part's official YouTube embed video ID
+app.post('/api/admin/shatibiyyah/parts/:partId/youtube', requireSuperAdmin, async (req: Request, res: Response) => {
+  const adminUser = (req as any).adminUser as AdminUser;
+  const { partId } = req.params;
+  const { youtubeUrlOrId, attribution } = req.body || {};
+
+  const partIdx = shatibiyyahSyncStore.parts.findIndex((p) => p.id === partId);
+  if (partIdx === -1) {
+    res.status(404).json({ error: `Audio part '${partId}' not found.` });
+    return;
+  }
+
+  const raw = String(youtubeUrlOrId || DEFAULT_SHATIBIYYAH_YOUTUBE_ID).trim();
+  let videoId: string | null = null;
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) {
+    videoId = raw;
+  } else {
+    try {
+      const parsed = new URL(raw);
+      if (parsed.hostname.includes('youtu.be')) {
+        videoId = parsed.pathname.replace(/^\//, '').split('/')[0] || null;
+      } else {
+        videoId = parsed.searchParams.get('v') || parsed.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/)?.[1] || null;
+      }
+    } catch {
+      videoId = null;
+    }
+  }
+
+  if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    res.status(400).json({ error: 'Valid 11-character YouTube Video ID or youtube.com URL is required.' });
+    return;
+  }
+
+  // Verify the YouTube video exists via oEmbed
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  try {
+    const oembed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`);
+    if (!oembed.ok) {
+      res.status(400).json({ error: `YouTube oEmbed rejected video '${videoId}' (HTTP ${oembed.status}).` });
+      return;
+    }
+  } catch (err: any) {
+    res.status(400).json({ error: `Could not verify YouTube video '${videoId}': ${err?.message || 'Network error'}` });
+    return;
+  }
+
+  const prev = shatibiyyahSyncStore.parts[partIdx];
+  if (prev.filename) {
+    const filePath = path.join(SHATIBIYYAH_AUDIO_DIR, path.basename(prev.filename));
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        // ignore cleanup
+      }
+    }
+  }
+
+  const updatedPart: ServerShatibiyyahAudioPart = {
+    ...prev,
+    sourceType: 'youtube',
+    youtubeVideoId: videoId,
+    youtubeUrl: watchUrl,
+    hasAudio: true,
+    audioUrl: watchUrl,
+    filename: null,
+    fileSizeBytes: 0,
+    mimeType: 'video/youtube',
+    sourceAttribution:
+      typeof attribution === 'string' && attribution.trim()
+        ? attribution.trim()
+        : `Official YouTube Embed — Sheikh Okasha Kameny (${watchUrl})`,
+    verifiedAuthentic: true,
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: adminUser.email
+  };
+
+  shatibiyyahSyncStore.parts[partIdx] = updatedPart;
+  saveShatibiyyahSyncStore();
+  logAuditAction(adminUser.email, 'SHATIBIYYAH_YOUTUBE_LINKED', `Shatibiyyah ${partId}`, `Linked YouTube ${videoId}`);
+  res.json({ success: true, part: updatedPart });
+});
+
+// Super Admin: Remove uploaded audio file (or disconnect source when ?clear=1)
+app.delete('/api/admin/shatibiyyah/parts/:partId/audio', requireSuperAdmin, (req: Request, res: Response) => {
+  const adminUser = (req as any).adminUser as AdminUser;
+  const { partId } = req.params;
+  const clearCompletely = req.query.clear === '1' || req.query.clear === 'true';
+  const partIdx = shatibiyyahSyncStore.parts.findIndex((p) => p.id === partId);
+  if (partIdx === -1) {
+    res.status(404).json({ error: `Audio part '${partId}' not found.` });
+    return;
+  }
+
+  const prev = shatibiyyahSyncStore.parts[partIdx];
+  if (prev.filename) {
+    const filePath = path.join(SHATIBIYYAH_AUDIO_DIR, path.basename(prev.filename));
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (clearCompletely) {
+    shatibiyyahSyncStore.parts[partIdx] = {
+      ...prev,
+      sourceType: undefined,
+      youtubeVideoId: null,
+      youtubeUrl: null,
+      hasAudio: false,
+      audioUrl: null,
+      filename: null,
+      fileSizeBytes: 0,
+      durationSeconds: 0,
+      mimeType: null,
+      sourceAttribution: 'Awaiting authorized Sheikh Okasha Kameny studio recording or YouTube link',
+      verifiedAuthentic: false
+    };
+  } else {
+    shatibiyyahSyncStore.parts[partIdx] = {
+      ...prev,
+      sourceType: 'youtube',
+      youtubeVideoId: DEFAULT_SHATIBIYYAH_YOUTUBE_ID,
+      youtubeUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+      hasAudio: true,
+      audioUrl: DEFAULT_SHATIBIYYAH_YOUTUBE_URL,
+      filename: null,
+      fileSizeBytes: 0,
+      durationSeconds: 0,
+      mimeType: 'video/youtube',
+      sourceAttribution: `Official YouTube Embed — Sheikh Okasha Kameny (${DEFAULT_SHATIBIYYAH_YOUTUBE_URL})`,
+      verifiedAuthentic: true
+    };
+  }
+
+  saveShatibiyyahSyncStore();
+  logAuditAction(adminUser.email, 'SHATIBIYYAH_AUDIO_REMOVED', `Shatibiyyah ${partId}`, clearCompletely ? 'Cleared source' : 'Restored default YouTube embed');
+  res.json({ success: true, part: shatibiyyahSyncStore.parts[partIdx] });
+});
+
+// Super Admin: Save or clear verified Bayt start/end timestamps (enriched with Bayt ID, text, chapter & recording ID)
+app.post('/api/admin/shatibiyyah/timestamps', requireSuperAdmin, (req: Request, res: Response) => {
+  const adminUser = (req as any).adminUser as AdminUser;
+  const { entries } = req.body;
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    res.status(400).json({ error: 'entries array is required.' });
+    return;
+  }
+
+  let updatedCount = 0;
+  let clearedCount = 0;
+  const now = new Date().toISOString();
+
+  for (const item of entries) {
+    const num = Number(item.baytNumber);
+    if (!Number.isInteger(num) || num < 1 || num > 1173) {
+      res.status(400).json({ error: `Invalid baytNumber: ${item.baytNumber}` });
+      return;
+    }
+
+    if (item.clear || item.audioStart === null || item.audioEnd === null) {
+      if (shatibiyyahSyncStore.timestamps[String(num)]) {
+        delete shatibiyyahSyncStore.timestamps[String(num)];
+        clearedCount++;
+      }
+      continue;
+    }
+
+    const start = Number(item.audioStart);
+    const end = Number(item.audioEnd);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+      res.status(400).json({
+        error: `Bayt ${num}: audioStart (${item.audioStart}) must be >= 0 and audioEnd (${item.audioEnd}) must be > audioStart.`
+      });
+      return;
+    }
+
+    const partId = String(item.audioPartId || 'part-01');
+    const matchedPart = shatibiyyahSyncStore.parts.find((p) => p.id === partId);
+    const meta = shatibiyyahBaytMetaLookup.get(num);
+    const recordingId = String(
+      item.recordingId || matchedPart?.youtubeVideoId || DEFAULT_SHATIBIYYAH_YOUTUBE_ID
+    );
+
+    shatibiyyahSyncStore.timestamps[String(num)] = {
+      baytId: String(item.baytId || meta?.id || `shat-${String(num).padStart(4, '0')}`),
+      baytNumber: num,
+      arabicText: String(item.arabicText || meta?.arabicText || ''),
+      chapterName: String(item.chapterName || meta?.chapterName || ''),
+      recordingId,
+      audioPartId: partId,
+      audioStart: Math.round(start * 1000) / 1000,
+      audioEnd: Math.round(end * 1000) / 1000,
+      verifiedByAdmin: true,
+      verifiedAt: now
+    };
+    updatedCount++;
+  }
+
+  saveShatibiyyahSyncStore();
+  logAuditAction(
+    adminUser.email,
+    'SHATIBIYYAH_TIMESTAMPS_SAVED',
+    'Shatibiyyah Sync',
+    `Saved ${updatedCount} verified timestamps, cleared ${clearedCount}.`
+  );
+
+  res.json({
+    success: true,
+    updatedCount,
+    clearedCount,
+    verifiedTimestampsCount: Object.keys(shatibiyyahSyncStore.timestamps).length,
+    timestamps: shatibiyyahSyncStore.timestamps
+  });
+});
+
+// ============================================================================
 // VITE DEV SERVER OR STATIC PRODUCTION SERVING
 // ============================================================================
 async function startServer() {

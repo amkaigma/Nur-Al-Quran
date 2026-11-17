@@ -1678,7 +1678,7 @@ export const ISLAMIC_BOOKS: LibraryBook[] = [
     originalLanguage: 'Arabic',
     availableTranslations: ['Arabic', 'English'],
     authenticityInfo: 'The undisputed supreme authority on the Minor Seven Readings (Al-Qira’at As-Sughra). Audio recitation by Sheikh Okasha Kameny (الشيخ عكاشة كميني).',
-    chaptersCount: 16,
+    chaptersCount: 79,
     featuredQuote: {
       arabic: 'بَدَأْتُ بِبِسْمِ اللَّهِ فِي النَّظْمِ أَوَّلاَ ... تَبَارَكَ رَحْمَاناً رَحِيماً وَمَوْئِلاَ',
       english: 'I begin with the Name of Allah in this poetic composition first of all; blessed be He as Most Merciful, Ever Merciful, and our supreme refuge.',
